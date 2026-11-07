@@ -1,13 +1,13 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { Problem } from '../types/mahjong';
+import { Problem, VoteComment } from '../types/mahjong';
 import { MahjongTile } from './MahjongTile';
 import { getTileDisplay, sortHandWithTsumo } from '../utils/mahjongUtils';
 
 interface ProblemCardProps {
   problem: Problem;
-  onVote?: (problemId: string, tileId: string) => void;
+  onVote?: (problemId: string, tileId: string, comment?: string) => void;
 }
 
 export const ProblemCard: React.FC<ProblemCardProps> = ({ problem, onVote }) => {
@@ -18,7 +18,11 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({ problem, onVote }) => 
 
   const [selectedTileIndex, setSelectedTileIndex] = useState<number | null>(null);
   const [hasAnswered, setHasAnswered] = useState(false);
+  const [userReason, setUserReason] = useState('');
   const [stats, setStats] = useState<Record<string, number>>(problem.stats);
+  const [comments, setComments] = useState<VoteComment[]>(problem.comments || []);
+  const [filterCommentTile, setFilterCommentTile] = useState<string>('all');
+  const [additionalComment, setAdditionalComment] = useState('');
 
   const selectedTile = selectedTileIndex !== null ? sortedHand[selectedTileIndex] : null;
 
@@ -33,24 +37,61 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({ problem, onVote }) => 
     setSelectedTileIndex(index);
   };
 
-  const handleSubmit = () => {
+  // 投票実行（コメント付き）
+  const handleSubmit = (withComment: boolean = true) => {
     if (selectedTileIndex === null || !selectedTile || hasAnswered) return;
+
+    const finalComment = withComment && userReason.trim() ? userReason.trim() : '';
 
     // 投票集計の更新
     setStats((prev) => ({
       ...prev,
       [selectedTile]: (prev[selectedTile] || 0) + 1,
     }));
+
+    // コメントがあればローカル一覧に追加
+    if (finalComment) {
+      const newComment: VoteComment = {
+        id: `c-user-${Date.now()}`,
+        problemId: problem.id,
+        tileId: selectedTile,
+        comment: finalComment,
+        createdAt: 'たった今',
+      };
+      setComments((prev) => [newComment, ...prev]);
+    }
+
     setHasAnswered(true);
 
     if (onVote) {
-      onVote(problem.id, selectedTile);
+      onVote(problem.id, selectedTile, finalComment || undefined);
     }
+  };
+
+  // 回答後の追加コメント投稿
+  const handleAddPostComment = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!additionalComment.trim() || !selectedTile) return;
+
+    const newComment: VoteComment = {
+      id: `c-user-${Date.now()}`,
+      problemId: problem.id,
+      tileId: selectedTile,
+      comment: additionalComment.trim(),
+      createdAt: 'たった今',
+    };
+    setComments((prev) => [newComment, ...prev]);
+
+    if (onVote) {
+      onVote(problem.id, selectedTile, additionalComment.trim());
+    }
+    setAdditionalComment('');
   };
 
   const handleReset = () => {
     setHasAnswered(false);
     setSelectedTileIndex(null);
+    setUserReason('');
   };
 
   // 全投票数
@@ -59,6 +100,11 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({ problem, onVote }) => 
   // 選択した牌の評価を探す
   const selectedDiscardInfo = problem.discards.find((d) => d.tileId === selectedTile);
   const bestDiscard = problem.discards.find((d) => d.rank === 'best');
+
+  // コメント絞り込み
+  const filteredComments = comments.filter((c) =>
+    filterCommentTile === 'all' ? true : c.tileId === filterCommentTile
+  );
 
   return (
     <div className="w-full max-w-3xl bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-xl overflow-hidden transition-all mb-8">
@@ -85,29 +131,48 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({ problem, onVote }) => 
         </h3>
 
         {/* 局・巡目・ドラ状況 */}
-        <div className="flex flex-wrap items-center gap-3 sm:gap-6 text-sm bg-white dark:bg-zinc-900 p-3 rounded-xl border border-zinc-200/80 dark:border-zinc-800">
-          <div className="flex items-center gap-1.5">
-            <span className="text-zinc-500 font-medium">局況:</span>
-            <span className="font-bold text-zinc-900 dark:text-zinc-100">
-              {problem.context.round}
-            </span>
-            <span className="text-zinc-400">/</span>
-            <span className="font-bold text-zinc-900 dark:text-zinc-100">
-              {problem.context.turn}巡目
-            </span>
-            <span className="text-zinc-400">/</span>
-            <span className="font-bold text-zinc-900 dark:text-zinc-100">
-              {problem.context.wind}
-            </span>
+        <div className="space-y-2 bg-white dark:bg-zinc-900 p-3 sm:p-3.5 rounded-xl border border-zinc-200/80 dark:border-zinc-800">
+          <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
+            <div className="flex items-center gap-2">
+              <span className="text-zinc-500 font-medium">局況:</span>
+              <span className="font-bold text-zinc-900 dark:text-zinc-100">
+                {problem.context.round}
+              </span>
+              <span className="text-zinc-400">/</span>
+              <span className="font-bold text-zinc-900 dark:text-zinc-100">
+                {problem.context.turn}巡目
+              </span>
+              <span className="text-zinc-400">/</span>
+              <span className="font-bold text-zinc-900 dark:text-zinc-100">
+                {problem.context.wind}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-zinc-500 font-medium text-xs sm:text-sm">ドラ:</span>
+              <MahjongTile tileId={problem.context.dora} size="sm" disabled />
+            </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <span className="text-zinc-500 font-medium">ドラ:</span>
-            <MahjongTile tileId={problem.context.dora} size="sm" disabled />
-          </div>
+          {/* 点数状況（任意設定時） */}
+          {problem.context.scoreInfo && (
+            <div className="flex items-start gap-1.5 text-xs bg-blue-50/70 dark:bg-blue-950/30 text-blue-900 dark:text-blue-300 p-2 sm:p-2.5 rounded-lg border border-blue-200 dark:border-blue-900/50">
+              <span className="font-bold shrink-0">📊 点数状況:</span>
+              <span>{problem.context.scoreInfo}</span>
+            </div>
+          )}
 
-          {problem.context.note && (
-            <div className="w-full text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-2.5 py-1.5 rounded-lg border border-amber-200 dark:border-amber-900/50">
+          {/* 捨て牌・他家状況（任意設定時） */}
+          {problem.context.discardsInfo && (
+            <div className="flex items-start gap-1.5 text-xs bg-amber-50/70 dark:bg-amber-950/30 text-amber-900 dark:text-amber-300 p-2 sm:p-2.5 rounded-lg border border-amber-200 dark:border-amber-900/50">
+              <span className="font-bold shrink-0">🀁 捨て牌・他家:</span>
+              <span className="whitespace-pre-line leading-relaxed">{problem.context.discardsInfo}</span>
+            </div>
+          )}
+
+          {/* 補足メモ */}
+          {problem.context.note && !problem.context.discardsInfo && (
+            <div className="text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-2.5 py-1.5 rounded-lg border border-amber-200 dark:border-amber-900/50">
               ⚠️ {problem.context.note}
             </div>
           )}
@@ -119,8 +184,8 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({ problem, onVote }) => 
         <div className="flex items-center justify-between w-full mb-3 px-2">
           <p className="text-xs sm:text-sm font-medium text-zinc-500 dark:text-zinc-400">
             {hasAnswered
-              ? '回答結果と打牌統計'
-              : '手牌14枚（配牌13枚 ＋ ツモ1枚）から切る牌を1枚選んでください'}
+              ? '回答結果と雀士たちの集合知'
+              : '手牌14枚（配牌13枚 ＋ ツモ1枚）から切る牌をタップしてください'}
           </p>
           <span className="text-xs font-mono text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded">
             手牌 {sortedHand.length}枚
@@ -152,30 +217,65 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({ problem, onVote }) => 
           </div>
         </div>
 
-        {/* 決定ボタン */}
+        {/* 回答前の決定 ＆ 理由入力エリア */}
         {!hasAnswered && (
-          <div className="mt-4 flex flex-col items-center gap-2">
-            <button
-              type="button"
-              onClick={handleSubmit}
-              disabled={selectedTileIndex === null}
-              className={`
-                px-8 py-3 rounded-full font-bold text-sm sm:text-base shadow-lg transition-all
-                ${
-                  selectedTileIndex !== null && selectedTile
-                    ? 'bg-blue-600 hover:bg-blue-700 text-white cursor-pointer hover:scale-105 active:scale-95'
-                    : 'bg-zinc-200 text-zinc-400 dark:bg-zinc-800 dark:text-zinc-600 cursor-not-allowed'
-                }
-              `}
-            >
-              {selectedTileIndex !== null && selectedTile
-                ? `【${getTileDisplay(selectedTile).topText}${getTileDisplay(selectedTile).bottomText}】を切る！`
-                : '牌を選んでください'}
-            </button>
+          <div className="mt-4 w-full max-w-md flex flex-col items-center gap-3">
+            {selectedTileIndex !== null && selectedTile ? (
+              <div className="w-full bg-blue-50/60 dark:bg-blue-950/30 p-3 sm:p-4 rounded-2xl border border-blue-200 dark:border-blue-900/60 space-y-2.5 animate-fade-in">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-blue-900 dark:text-blue-200 flex items-center gap-1.5">
+                    <span>選択中:</span>
+                    <span className="underline font-black text-sm">
+                      {getTileDisplay(selectedTile).topText}
+                      {getTileDisplay(selectedTile).bottomText}
+                    </span>
+                  </span>
+                  <span className="text-[10px] text-zinc-500">理由の入力は任意です</span>
+                </div>
+
+                {/* 理由入力フォーム */}
+                <input
+                  type="text"
+                  placeholder="打牌理由をひとこと（例: 筒子の受け入れ最大、親リーチの現物）"
+                  value={userReason}
+                  onChange={(e) => setUserReason(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleSubmit(true);
+                    }
+                  }}
+                  className="w-full text-xs p-2.5 rounded-xl border border-blue-300 dark:border-blue-800 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+
+                <div className="flex items-center gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => handleSubmit(true)}
+                    className="flex-1 py-2.5 px-4 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white rounded-xl text-xs sm:text-sm font-bold shadow-md transition-all cursor-pointer"
+                  >
+                    {userReason.trim() ? '💬 理由を添えて投票！' : '【この牌を切る】'}
+                  </button>
+                  {userReason.trim() && (
+                    <button
+                      type="button"
+                      onClick={() => handleSubmit(false)}
+                      className="py-2.5 px-3 text-xs text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                    >
+                      理由なしで即投票
+                    </button>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <p className="text-xs text-zinc-400 py-2">
+                上の手牌から切りたい牌をタップしてください
+              </p>
+            )}
           </div>
         )}
 
-        {/* 回答後の解説 ＆ 統計エリア */}
+        {/* 回答後の解説 ＆ 統計 ＆ 理由一覧エリア */}
         {hasAnswered && (
           <div className="w-full mt-6 space-y-6 animate-fade-in">
             {/* あなたの選択判定 */}
@@ -200,6 +300,11 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({ problem, onVote }) => 
                 </span>{' '}
                 - {selectedDiscardInfo?.reason || '受け入れ枚数や守備面で大きな損失があります。'}
               </p>
+              {userReason.trim() && (
+                <div className="mt-2 text-xs bg-white/70 dark:bg-black/20 p-2 rounded-lg">
+                  <span className="font-bold">あなたの回答理由:</span> 「{userReason}」
+                </div>
+              )}
             </div>
 
             {/* みんなの打牌統計 (投票分布グラフ) */}
@@ -271,6 +376,115 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({ problem, onVote }) => 
               <p className="text-sm leading-relaxed text-zinc-700 dark:text-zinc-300 whitespace-pre-line">
                 {problem.explanation}
               </p>
+            </div>
+
+            {/* 💬 雀士たちの打牌理由・考察一覧（集合知セクション） */}
+            <div className="bg-zinc-50 dark:bg-zinc-800/50 p-4 sm:p-5 rounded-xl border border-zinc-200 dark:border-zinc-700/80 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h4 className="font-bold text-sm text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                  <span>💬</span>
+                  <span>雀士たちの打牌理由・考察</span>
+                  <span className="text-xs font-mono font-normal text-zinc-500 bg-zinc-200 dark:bg-zinc-700 px-2 py-0.5 rounded-full">
+                    {comments.length}件
+                  </span>
+                </h4>
+              </div>
+
+              {/* 打牌別フィルター */}
+              {comments.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 items-center pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setFilterCommentTile('all')}
+                    className={`px-2.5 py-1 text-[11px] font-bold rounded-full transition-all cursor-pointer ${
+                      filterCommentTile === 'all'
+                        ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900'
+                        : 'bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700'
+                    }`}
+                  >
+                    すべて ({comments.length})
+                  </button>
+                  {Array.from(new Set(comments.map((c) => c.tileId))).map((tId) => {
+                    const count = comments.filter((c) => c.tileId === tId).length;
+                    const disp = getTileDisplay(tId);
+                    return (
+                      <button
+                        key={`tab-${tId}`}
+                        type="button"
+                        onClick={() => setFilterCommentTile(tId)}
+                        className={`px-2.5 py-1 text-[11px] font-bold rounded-full transition-all flex items-center gap-1 cursor-pointer ${
+                          filterCommentTile === tId
+                            ? 'bg-blue-600 text-white shadow-xs'
+                            : 'bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700'
+                        }`}
+                      >
+                        <span>{disp.topText}{disp.bottomText}</span>
+                        <span className="opacity-75">({count})</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* コメント一覧リスト */}
+              <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                {filteredComments.length === 0 ? (
+                  <p className="text-xs text-zinc-400 py-3 text-center">
+                    まだこの打牌についての理由・考察はありません
+                  </p>
+                ) : (
+                  filteredComments.map((comment) => {
+                    const disp = getTileDisplay(comment.tileId);
+                    const isBest = bestDiscard?.tileId === comment.tileId;
+                    return (
+                      <div
+                        key={comment.id}
+                        className="bg-white dark:bg-zinc-900 p-3 rounded-xl border border-zinc-200/80 dark:border-zinc-800 space-y-1.5 text-xs"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-1.5">
+                            <MahjongTile tileId={comment.tileId} size="xs" disabled />
+                            <span className="font-bold text-zinc-800 dark:text-zinc-200">
+                              【{disp.topText}{disp.bottomText}】を切る理由
+                            </span>
+                            {isBest && (
+                              <span className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 text-[10px] px-1.5 py-0.5 rounded font-bold">
+                                正解
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-[10px] text-zinc-400">{comment.createdAt}</span>
+                        </div>
+                        <p className="text-zinc-700 dark:text-zinc-300 leading-relaxed pl-1">
+                          {comment.comment}
+                        </p>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* 追加コメント投稿フォーム */}
+              <form onSubmit={handleAddPostComment} className="pt-2 flex gap-2">
+                <input
+                  type="text"
+                  placeholder="追加で考察や理由を投稿..."
+                  value={additionalComment}
+                  onChange={(e) => setAdditionalComment(e.target.value)}
+                  className="flex-1 text-xs p-2 rounded-lg border border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                />
+                <button
+                  type="submit"
+                  disabled={!additionalComment.trim()}
+                  className={`px-3 py-2 text-xs font-bold rounded-lg transition-colors ${
+                    additionalComment.trim()
+                      ? 'bg-blue-600 hover:bg-blue-700 text-white cursor-pointer'
+                      : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-400 cursor-not-allowed'
+                  }`}
+                >
+                  投稿
+                </button>
+              </form>
             </div>
 
             <div className="flex justify-end">

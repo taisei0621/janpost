@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Problem, ProblemLevel } from '../types/mahjong';
+import { Problem, ProblemLevel, VoteComment } from '../types/mahjong';
 import { INITIAL_PROBLEMS } from '../data/initialProblems';
 import { ProblemCard } from '../components/ProblemCard';
 import { PostProblemModal } from '../components/PostProblemModal';
@@ -41,25 +41,39 @@ export default function Home() {
     await createProblem(newProblem);
   };
 
-  // 投票集計
-  const handleVote = async (problemId: string, tileId: string) => {
-    // 画面の集計を即座に+1
+  // 投票集計（コメント対応）
+  const handleVote = async (problemId: string, tileId: string, comment?: string) => {
+    // 画面の集計を即座に+1 ＆ コメントがあれば追加
     setProblems((prev) =>
       prev.map((p) => {
         if (p.id === problemId) {
+          const updatedComments: VoteComment[] = comment
+            ? [
+                {
+                  id: `c-local-${Date.now()}`,
+                  problemId,
+                  tileId,
+                  comment,
+                  createdAt: 'たった今',
+                },
+                ...(p.comments || []),
+              ]
+            : p.comments || [];
+
           return {
             ...p,
             stats: {
               ...p.stats,
               [tileId]: (p.stats[tileId] || 0) + 1,
             },
+            comments: updatedComments,
           };
         }
         return p;
       })
     );
     // Supabase に非同期で投票を記録
-    await submitVote(problemId, tileId);
+    await submitVote(problemId, tileId, comment);
   };
 
   // フィルタリング処理
@@ -75,7 +89,7 @@ export default function Home() {
       <header className="sticky top-0 z-40 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md border-b border-zinc-200 dark:border-zinc-800">
         <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <span className="text-2xl select-none">🀄</span>
+            <span className="text-2xl select-none">🀁</span>
             <div>
               <h1 className="text-lg sm:text-xl font-black tracking-tight flex items-center gap-1.5">
                 雀ポスト{' '}
@@ -100,7 +114,7 @@ export default function Home() {
             <button
               type="button"
               onClick={() => setIsModalOpen(true)}
-              className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-xs sm:text-sm font-bold px-4 py-2 rounded-full shadow-md transition-all cursor-pointer"
+              className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-xs sm:text-sm font-bold px-3 sm:px-4 py-2 rounded-full shadow-md transition-all cursor-pointer"
             >
               <span>+</span>
               <span>問題を投稿する</span>
@@ -116,7 +130,7 @@ export default function Home() {
             迷った一打を問う。雀士の統計で解く。
           </h2>
           <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 max-w-xl mx-auto leading-relaxed">
-            手牌14枚から1タップで直感的に打牌を選択。回答するとリアルタイムに全員の選択割合と戦術解説が表示されます。初級から上級までステップアップして実力を磨きましょう。
+            手牌14枚から1タップで直感的に打牌を選択。回答するとリアルタイムに全員の選択割合・打牌理由・戦術解説が表示されます。初級から上級までステップアップして実力を磨きましょう。
           </p>
         </div>
       </section>
@@ -167,7 +181,7 @@ export default function Home() {
                 : 'bg-white text-purple-700 dark:bg-zinc-800 dark:text-purple-400 border border-purple-200 dark:border-purple-800 hover:bg-purple-50'
             }`}
           >
-            🔥 上級編（状況判断・押し引き）
+            👑 上級編（押し引きとベタオリ）
           </button>
           <button
             type="button"
@@ -178,15 +192,15 @@ export default function Home() {
                 : 'bg-white text-amber-700 dark:bg-zinc-800 dark:text-amber-400 border border-amber-200 dark:border-amber-800 hover:bg-amber-50'
             }`}
           >
-            👥 ユーザー投稿
+            👥 ユーザー投稿問題
           </button>
         </div>
 
         {/* 問題一覧 */}
-        <div className="flex flex-col items-center">
+        <div className="space-y-8 flex flex-col items-center">
           {isLoading ? (
-            <div className="text-center py-16 space-y-3">
-              <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto" />
+            <div className="text-center py-12 space-y-2">
+              <div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto" />
               <p className="text-xs text-zinc-500">クラウドデータベースから問題を読み込み中...</p>
             </div>
           ) : filteredProblems.length === 0 ? (

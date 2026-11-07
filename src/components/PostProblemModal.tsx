@@ -31,6 +31,9 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
   const [wind, setWind] = useState('南家');
   const [dora, setDora] = useState('5m');
   const [author, setAuthor] = useState('');
+  const [scoreInfo, setScoreInfo] = useState('');
+  const [discardsInfo, setDiscardsInfo] = useState('');
+  const [showAdvancedContext, setShowAdvancedContext] = useState(false);
   const [hand, setHand] = useState<string[]>([]);
   const [bestDiscard, setBestDiscard] = useState('');
   const [bestReason, setBestReason] = useState('');
@@ -87,6 +90,8 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
         turn: Number(turn),
         wind,
         dora,
+        scoreInfo: scoreInfo.trim() || undefined,
+        discardsInfo: discardsInfo.trim() || undefined,
       },
       hand: sortTiles(hand), // 投稿時に自動理牌
       discards,
@@ -96,6 +101,7 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
       stats: {
         [bestDiscard]: 1,
       },
+      comments: [],
     };
 
     onAddProblem(newProblem);
@@ -112,39 +118,39 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 text-xl font-bold cursor-pointer"
+            className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 text-2xl font-bold leading-none cursor-pointer"
           >
-            ✕
+            &times;
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* 基本情報 */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
+          {/* タイトルと難易度 */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="sm:col-span-2">
               <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-1">
-                タイトル
+                問題タイトル
               </label>
               <input
                 type="text"
+                placeholder="例: オーラスの逆転手：打点 vs スピード"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="例: オーラス逆転の何切る"
-                className="w-full text-xs sm:text-sm p-2 rounded-lg border border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800"
+                className="w-full text-xs p-2 rounded-lg border border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 focus:ring-1 focus:ring-blue-500"
               />
             </div>
             <div>
               <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-1">
-                難易度
+                対象難易度
               </label>
               <select
                 value={level}
                 onChange={(e) => setLevel(e.target.value as ProblemLevel)}
-                className="w-full text-xs sm:text-sm p-2 rounded-lg border border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800"
+                className="w-full text-xs p-2 rounded-lg border border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 focus:ring-1 focus:ring-blue-500"
               >
-                <option value="beginner">初級編（基本の受け入れ）</option>
-                <option value="intermediate">中級編（打点とスピード）</option>
-                <option value="advanced">上級編（状況判断・押し引き）</option>
+                <option value="beginner">🌱 初級（基本牌効率）</option>
+                <option value="intermediate">⚔️ 中級（手役・点差）</option>
+                <option value="advanced">👑 上級（押し引き・ベタオリ）</option>
               </select>
             </div>
           </div>
@@ -201,6 +207,56 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
             </div>
           </div>
 
+          {/* 実戦状況の詳細（点数・捨牌・リーチ等）アコーディオン（任意） */}
+          <div className="border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden bg-zinc-50/50 dark:bg-zinc-800/30">
+            <button
+              type="button"
+              onClick={() => setShowAdvancedContext(!showAdvancedContext)}
+              className="w-full px-3 py-2 text-xs font-bold flex items-center justify-between text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800/60 transition-colors cursor-pointer"
+            >
+              <div className="flex items-center gap-1.5">
+                <span>📋</span>
+                <span>詳細な戦況（点数状況・捨て牌・リーチ等）を追加</span>
+                <span className="text-[10px] text-zinc-400 font-normal">（任意）</span>
+                {(scoreInfo || discardsInfo) && (
+                  <span className="w-2 h-2 rounded-full bg-blue-500" />
+                )}
+              </div>
+              <span className="text-zinc-400 text-xs">
+                {showAdvancedContext ? '▲ 閉じる' : '▼ 入力する'}
+              </span>
+            </button>
+
+            {showAdvancedContext && (
+              <div className="p-3 pt-2 space-y-2.5 border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60">
+                <div>
+                  <label className="block text-[11px] font-bold text-zinc-600 dark:text-zinc-400 mb-1">
+                    📊 点数状況・順位
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="例: 東家 36,000 / 南家(自分) 24,000 / 西家 20,000 / 北家 20,000（2着目）"
+                    value={scoreInfo}
+                    onChange={(e) => setScoreInfo(e.target.value)}
+                    className="w-full text-xs p-2 rounded-lg border border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 focus:ring-1 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-zinc-600 dark:text-zinc-400 mb-1">
+                    🀁 捨て牌・他家の動向
+                  </label>
+                  <textarea
+                    rows={2}
+                    placeholder="例: 対面の親が6巡目に早めリーチ、河に1m・8p・発。上家から安牌手出しあり。自分は好形一向聴。"
+                    value={discardsInfo}
+                    onChange={(e) => setDiscardsInfo(e.target.value)}
+                    className="w-full text-xs p-2 rounded-lg border border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 focus:ring-1 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* 現在選択中の手牌 (14枚) */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
@@ -250,160 +306,172 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
             </div>
           </div>
 
-          {/* ★ 牌パレット：極小サイズでスッキリ整列（萬子・筒子・索子・字牌の4段） */}
-          <div className="space-y-2 bg-zinc-50 dark:bg-zinc-800/40 p-3 rounded-xl border border-zinc-200 dark:border-zinc-800">
+          {/* 牌パレット (4段整列) */}
+          <div className="bg-zinc-50 dark:bg-zinc-800/60 p-3 rounded-xl border border-zinc-200 dark:border-zinc-700/60 space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-zinc-700 dark:text-zinc-300">
-                牌パレット（タップして手牌に追加）
+                牌パレット（クリックで手牌に追加）
               </span>
-              <label className="text-[11px] text-zinc-500 flex items-center gap-1 cursor-pointer select-none">
+              <label className="flex items-center gap-1.5 text-[11px] text-zinc-500 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={autoSort}
                   onChange={(e) => setAutoSort(e.target.checked)}
                   className="rounded text-blue-600"
                 />
-                追加時に自動理牌
+                自動理牌
               </label>
             </div>
 
-            {/* 萬子 (1m〜9m) */}
-            <div className="flex items-center gap-1">
-              <span className="text-[10px] font-bold text-red-700 w-6">萬子</span>
-              <div className="flex gap-1 flex-1 overflow-x-auto pb-0.5">
-                {MAN_TILES.map((t) => (
-                  <MahjongTile
-                    key={`pal-${t}`}
-                    tileId={t}
-                    size="xs"
-                    onClick={() => handleAddTile(t)}
-                  />
-                ))}
+            <div className="space-y-1.5">
+              {/* 萬子 */}
+              <div className="flex items-center gap-1 overflow-x-auto pb-1">
+                <span className="text-[10px] font-bold text-red-600 w-5 shrink-0">萬</span>
+                <div className="flex gap-1">
+                  {MAN_TILES.map((t) => (
+                    <MahjongTile
+                      key={`pal-${t}`}
+                      tileId={t}
+                      size="xs"
+                      onClick={() => handleAddTile(t)}
+                    />
+                  ))}
+                </div>
               </div>
-            </div>
 
-            {/* 筒子 (1p〜9p) */}
-            <div className="flex items-center gap-1">
-              <span className="text-[10px] font-bold text-blue-700 w-6">筒子</span>
-              <div className="flex gap-1 flex-1 overflow-x-auto pb-0.5">
-                {PIN_TILES.map((t) => (
-                  <MahjongTile
-                    key={`pal-${t}`}
-                    tileId={t}
-                    size="xs"
-                    onClick={() => handleAddTile(t)}
-                  />
-                ))}
+              {/* 筒子 */}
+              <div className="flex items-center gap-1 overflow-x-auto pb-1">
+                <span className="text-[10px] font-bold text-blue-600 w-5 shrink-0">筒</span>
+                <div className="flex gap-1">
+                  {PIN_TILES.map((t) => (
+                    <MahjongTile
+                      key={`pal-${t}`}
+                      tileId={t}
+                      size="xs"
+                      onClick={() => handleAddTile(t)}
+                    />
+                  ))}
+                </div>
               </div>
-            </div>
 
-            {/* 索子 (1s〜9s) */}
-            <div className="flex items-center gap-1">
-              <span className="text-[10px] font-bold text-emerald-700 w-6">索子</span>
-              <div className="flex gap-1 flex-1 overflow-x-auto pb-0.5">
-                {SOU_TILES.map((t) => (
-                  <MahjongTile
-                    key={`pal-${t}`}
-                    tileId={t}
-                    size="xs"
-                    onClick={() => handleAddTile(t)}
-                  />
-                ))}
+              {/* 索子 */}
+              <div className="flex items-center gap-1 overflow-x-auto pb-1">
+                <span className="text-[10px] font-bold text-emerald-600 w-5 shrink-0">索</span>
+                <div className="flex gap-1">
+                  {SOU_TILES.map((t) => (
+                    <MahjongTile
+                      key={`pal-${t}`}
+                      tileId={t}
+                      size="xs"
+                      onClick={() => handleAddTile(t)}
+                    />
+                  ))}
+                </div>
               </div>
-            </div>
 
-            {/* 字牌 (東南西北白發中) */}
-            <div className="flex items-center gap-1">
-              <span className="text-[10px] font-bold text-zinc-700 dark:text-zinc-300 w-6">字牌</span>
-              <div className="flex gap-1 flex-1 overflow-x-auto pb-0.5">
-                {ZI_TILES.map((t) => (
-                  <MahjongTile
-                    key={`pal-${t}`}
-                    tileId={t}
-                    size="xs"
-                    onClick={() => handleAddTile(t)}
-                  />
-                ))}
+              {/* 字牌 */}
+              <div className="flex items-center gap-1 overflow-x-auto pb-1">
+                <span className="text-[10px] font-bold text-purple-600 w-5 shrink-0">字</span>
+                <div className="flex gap-1">
+                  {ZI_TILES.map((t) => (
+                    <MahjongTile
+                      key={`pal-${t}`}
+                      tileId={t}
+                      size="xs"
+                      onClick={() => handleAddTile(t)}
+                    />
+                  ))}
+                </div>
               </div>
             </div>
           </div>
 
-          {/* 正解の打牌選択 */}
-          {hand.length === 14 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-emerald-50 dark:bg-emerald-950/30 p-3 rounded-xl border border-emerald-200 dark:border-emerald-900">
-              <div>
-                <label className="block text-xs font-bold text-emerald-900 dark:text-emerald-100 mb-1">
-                  正解（本命の打牌）
-                </label>
-                <select
-                  value={bestDiscard}
-                  onChange={(e) => setBestDiscard(e.target.value)}
-                  className="w-full text-xs sm:text-sm p-2 rounded border dark:bg-zinc-800"
-                >
-                  <option value="">正解牌を選択</option>
-                  {Array.from(new Set(hand)).map((t) => (
-                    <option key={`opt-${t}`} value={t}>
-                      {getTileDisplay(t).topText}
-                      {getTileDisplay(t).bottomText} ({t})
-                    </option>
-                  ))}
-                </select>
+          {/* 正解打牌の選択（手牌14枚から選択） */}
+          <div className="bg-blue-50/50 dark:bg-blue-950/20 p-3 rounded-xl border border-blue-200 dark:border-blue-900/60 space-y-2">
+            <label className="block text-xs font-bold text-blue-900 dark:text-blue-300">
+              正解（本命の打牌）を選択してください
+            </label>
+            {hand.length === 0 ? (
+              <span className="text-[11px] text-zinc-400">まず手牌を選んでください</span>
+            ) : (
+              <div className="flex flex-wrap gap-1.5 items-center">
+                {Array.from(new Set(hand)).map((tileId) => {
+                  const isSelected = bestDiscard === tileId;
+                  const display = getTileDisplay(tileId);
+                  return (
+                    <button
+                      key={`sel-${tileId}`}
+                      type="button"
+                      onClick={() => setBestDiscard(tileId)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all flex items-center gap-1 cursor-pointer ${
+                        isSelected
+                          ? 'bg-blue-600 text-white border-blue-600 shadow-sm scale-105'
+                          : 'bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border-zinc-200 dark:border-zinc-700 hover:border-blue-400'
+                      }`}
+                    >
+                      <span className={display.suitColor}>{display.topText}</span>
+                      <span>{display.bottomText}</span>
+                      {isSelected && <span>✓</span>}
+                    </button>
+                  );
+                })}
               </div>
-              <div>
-                <label className="block text-xs font-bold text-emerald-900 dark:text-emerald-100 mb-1">
-                  正解理由の要約
-                </label>
-                <input
-                  type="text"
-                  value={bestReason}
-                  onChange={(e) => setBestReason(e.target.value)}
-                  placeholder="例: 受け入れ枚数最大、三色確定"
-                  className="w-full text-xs sm:text-sm p-2 rounded border dark:bg-zinc-800"
-                />
-              </div>
-            </div>
-          )}
-
-          {/* 解説 ＆ 出題者名 */}
-          <div className="space-y-2.5">
-            <div>
-              <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-1">
-                詳しい戦術解説
-              </label>
-              <textarea
-                rows={2}
-                value={explanation}
-                onChange={(e) => setExplanation(e.target.value)}
-                placeholder="なぜその牌を切るべきか、他の選択肢との比較などを書いてください。"
-                className="w-full text-xs sm:text-sm p-2 rounded-lg border border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800"
-              />
-            </div>
+            )}
 
             <div>
-              <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-1">
-                あなたの名前（ニックネーム）
+              <label className="block text-[11px] font-bold text-zinc-600 dark:text-zinc-400 mb-1 mt-2">
+                本命打牌の狙い・理由
               </label>
               <input
                 type="text"
-                value={author}
-                onChange={(e) => setAuthor(e.target.value)}
-                placeholder="名無しの雀士"
-                className="w-full text-xs sm:text-sm p-2 rounded-lg border border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800"
+                placeholder="例: 受け入れ枚数最大（28枚）かつ平和・タンヤオへの変化が最多"
+                value={bestReason}
+                onChange={(e) => setBestReason(e.target.value)}
+                className="w-full text-xs p-2 rounded-lg border border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 focus:ring-1 focus:ring-blue-500"
               />
             </div>
           </div>
 
-          <div className="flex justify-end gap-2.5 pt-2 border-t dark:border-zinc-800">
+          {/* 戦術解説と投稿者名 */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="sm:col-span-2">
+              <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-1">
+                全体の戦術解説（任意）
+              </label>
+              <textarea
+                rows={2}
+                placeholder="例: 序盤の孤立牌比較。オタ風よりも端牌のくっつきを優先するのが現代牌効率の基本です。"
+                value={explanation}
+                onChange={(e) => setExplanation(e.target.value)}
+                className="w-full text-xs p-2 rounded-lg border border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-1">
+                投稿者名（任意）
+              </label>
+              <input
+                type="text"
+                placeholder="名無しの雀士"
+                value={author}
+                onChange={(e) => setAuthor(e.target.value)}
+                className="w-full text-xs p-2 rounded-lg border border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+
+          {/* 送信ボタン */}
+          <div className="flex items-center justify-end gap-3 pt-3 border-t dark:border-zinc-800">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 text-xs sm:text-sm font-semibold hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
+              className="px-4 py-2 text-xs font-bold text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg cursor-pointer transition-colors"
             >
               キャンセル
             </button>
             <button
               type="submit"
-              className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-bold shadow-md cursor-pointer"
+              className="px-5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 active:scale-95 rounded-lg shadow-md transition-all cursor-pointer"
             >
               問題を投稿する
             </button>

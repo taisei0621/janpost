@@ -11,6 +11,8 @@ export const INITIAL_PROBLEMS: Problem[] = [
       wind: '南家',
       dora: '5p',
       score: 25000,
+      scoreInfo: '東家: 25,000 / 南家(自分): 25,000 / 西家: 25,000 / 北家: 25,000（平たい東1局）',
+      discardsInfo: '5巡目・全員おとなしい立ち上がり。役牌の東・白が1枚ずつ切れている。',
       note: '平たい東場の序盤。メンゼンでリーチを目指す基本手順。',
     },
     // 手牌14枚: 13枚理牌 [1m 1m 2m 3m 9m 4p 5p 6p 2s 3s 7s 8s 3z] + ツモ牌 [6s]
@@ -43,6 +45,29 @@ export const INITIAL_PROBLEMS: Problem[] = [
       '9m': 18,
       '1m': 4,
     },
+    comments: [
+      {
+        id: 'c-beg-1',
+        problemId: 'prob-beginner-1',
+        tileId: '3z',
+        comment: '南家なので西はオタ風。9mのくっつきを逃したくないので即切り一択。',
+        createdAt: '2026-11-07 10:15',
+      },
+      {
+        id: 'c-beg-2',
+        problemId: 'prob-beginner-1',
+        tileId: '3z',
+        comment: '基本中の基本。端牌よりもまず役に立たない字牌から処理していく。',
+        createdAt: '2026-11-07 11:20',
+      },
+      {
+        id: 'c-beg-3',
+        problemId: 'prob-beginner-1',
+        tileId: '9m',
+        comment: '字牌を1枚安全牌として抱えておきたいので、先に9mを処理しました。',
+        createdAt: '2026-11-07 12:45',
+      },
+    ],
   },
   {
     id: 'prob-intermediate-1',
@@ -54,6 +79,8 @@ export const INITIAL_PROBLEMS: Problem[] = [
       wind: '西家',
       dora: '5m',
       score: 21000,
+      scoreInfo: '東家: 29,000 / 南家: 27,000 / 西家(自分): 21,000 / 北家: 23,000（南2局・3着目）',
+      discardsInfo: '7巡目。トップ目東家が字牌手出し。上家から安牌の手出しあり。',
       note: '3着目。トップとの差は8000点。打点を狙いたい場面。',
     },
     // 手牌14枚: 13枚理牌 [2m 3m 4m 5m 2p 3p 4p 7p 8p 2s 3s 8s 8s] + ツモ牌 [4s]
@@ -86,6 +113,29 @@ export const INITIAL_PROBLEMS: Problem[] = [
       '8s': 26,
       '5m': 12,
     },
+    comments: [
+      {
+        id: 'c-int-1',
+        problemId: 'prob-intermediate-1',
+        tileId: '7p',
+        comment: '南2局の3着目なら打点が必要。78pを外して234三色・ドラ1の満貫ルートへ！',
+        createdAt: '2026-11-07 14:10',
+      },
+      {
+        id: 'c-int-2',
+        problemId: 'prob-intermediate-1',
+        tileId: '7p',
+        comment: 'ソーズが2344sと強い形なのでピンズを払っても速度落ちは最小限。',
+        createdAt: '2026-11-07 15:30',
+      },
+      {
+        id: 'c-int-3',
+        problemId: 'prob-intermediate-1',
+        tileId: '8s',
+        comment: 'アガリ逃しが怖かったので、両面2つのイーシャンテンを維持して8sトイツ落としにしました。',
+        createdAt: '2026-11-07 16:05',
+      },
+    ],
   },
   {
     id: 'prob-advanced-1',
@@ -97,7 +147,9 @@ export const INITIAL_PROBLEMS: Problem[] = [
       wind: '北家',
       dora: '8m',
       score: 26000,
-      note: '東家（親）から8巡目にリーチ。自分の手牌はバラバラで打点なし。親の捨て牌: 1m, 9p, 2s, 8p, 4m, 白, 9m。',
+      scoreInfo: '東家(親): 38,000 / 南家: 24,000 / 西家: 12,000 / 北家(自分): 26,000（2着目）',
+      discardsInfo: '東家（親）から8巡目リーチ。親の捨て牌: 1m, 9p, 2s, 8p, 4m, 白, 9m。自分はノーテン・現物ゼロ。',
+      note: '親からリーチが入った局面。放銃すれば致命傷になるため完全撤退の手順。',
     },
     // 手牌14枚: 13枚理牌 [3m 5m 8m 1p 4p 7p 3s 6s 7s 9s 2z 4z 7z] + ツモ牌 [6m]
     hand: ['3m', '5m', '8m', '1p', '4p', '7p', '3s', '6s', '7s', '9s', '2z', '4z', '7z', '6m'],
@@ -129,5 +181,21 @@ export const INITIAL_PROBLEMS: Problem[] = [
       '1p': 38,
       '8m': 8,
     },
+    comments: [
+      {
+        id: 'c-adv-1',
+        problemId: 'prob-advanced-1',
+        tileId: '4z',
+        comment: '親のドラ無筋は絶対切れない。北は生牌だが単騎待ちにしか刺さらないので打点が安い。',
+        createdAt: '2026-11-07 18:20',
+      },
+      {
+        id: 'c-adv-2',
+        problemId: 'prob-advanced-1',
+        tileId: '1p',
+        comment: '2pの壁を見て1pのワンチャンスで凌ぎました。字牌生牌よりマシかと判断。',
+        createdAt: '2026-11-07 19:40',
+      },
+    ],
   },
 ];
