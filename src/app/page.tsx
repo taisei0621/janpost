@@ -96,9 +96,6 @@ export default function Home() {
       {/* ヒーローセクション */}
       <section className="bg-gradient-to-b from-blue-50/50 via-white to-zinc-100 dark:from-zinc-900 dark:via-zinc-900 dark:to-zinc-950 py-10 px-4 border-b border-zinc-200/60 dark:border-zinc-800">
         <div className="max-w-4xl mx-auto text-center space-y-3">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 text-xs font-bold border border-emerald-300 dark:border-emerald-800">
-            <span>✨ 8週間アジャイル開発：第6週リリース稼働中</span>
-          </div>
           <h2 className="text-2xl sm:text-4xl font-black text-zinc-900 dark:text-zinc-50 tracking-tight">
             迷った一打を問う。雀士の統計で解く。
           </h2>
@@ -200,7 +197,7 @@ export default function Home() {
         <p className="font-bold text-zinc-700 dark:text-zinc-300">
           雀ポスト (JanPost) - 麻雀何切る投稿・投票プラットフォーム
         </p>
-        <p>ソフトウェアクリエイション ソフトウェア開発演習 プロダクト</p>
+        <p className="text-zinc-400">© 2026 JanPost. All rights reserved.</p>
       </footer>
 
       {/* 投稿モーダル */}
