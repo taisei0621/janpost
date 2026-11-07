@@ -11,6 +11,12 @@ export const INITIAL_PROBLEMS: Problem[] = [
       wind: '南家',
       dora: '5p',
       score: 25000,
+      scores: {
+        東家: 25000,
+        南家: 25000,
+        西家: 25000,
+        北家: 25000,
+      },
       scoreInfo: '東家: 25,000 / 南家(自分): 25,000 / 西家: 25,000 / 北家: 25,000（平たい東1局）',
       discardsInfo: '5巡目・全員おとなしい立ち上がり。役牌の東・白が1枚ずつ切れている。',
       note: '平たい東場の序盤。メンゼンでリーチを目指す基本手順。',
@@ -71,32 +77,38 @@ export const INITIAL_PROBLEMS: Problem[] = [
   },
   {
     id: 'prob-intermediate-1',
-    title: '【中級】イーシャンテンの選択：両面固定 vs 三色の渡り',
+    title: '【中級】イーシャンテンの選択：両面固定 vs 三色の渡り（赤ドラ入り）',
     level: 'intermediate',
     context: {
       round: '南2局',
       turn: 7,
       wind: '西家',
-      dora: '5m',
+      dora: '5p',
       score: 21000,
+      scores: {
+        東家: 29000,
+        南家: 27000,
+        西家: 21000,
+        北家: 23000,
+      },
       scoreInfo: '東家: 29,000 / 南家: 27,000 / 西家(自分): 21,000 / 北家: 23,000（南2局・3着目）',
       discardsInfo: '7巡目。トップ目東家が字牌手出し。上家から安牌の手出しあり。',
-      note: '3着目。トップとの差は8000点。打点を狙いたい場面。',
+      note: '3着目。トップとの差は8000点。赤5萬を活かして跳満・満貫を狙いたい場面。',
     },
-    // 手牌14枚: 13枚理牌 [2m 3m 4m 5m 2p 3p 4p 7p 8p 2s 3s 8s 8s] + ツモ牌 [4s]
-    hand: ['2m', '3m', '4m', '5m', '2p', '3p', '4p', '7p', '8p', '2s', '3s', '8s', '8s', '4s'],
+    // 手牌14枚: 赤5m入り！ [2m 3m 4m 0m 2p 3p 4p 7p 8p 2s 3s 8s 8s] + ツモ牌 [4s]
+    hand: ['2m', '3m', '4m', '0m', '2p', '3p', '4p', '7p', '8p', '2s', '3s', '8s', '8s', '4s'],
     discards: [
       {
         tileId: '7p',
         rank: 'best',
-        label: '本命（三色＆打点MAX）',
-        reason: '234の三色同順とドラ5mを活かして満貫・跳満を狙う一打。8p・7pの搭子を外しても234sが両面＋嵌張の厚い形なのでテンパイ速度も十分。',
+        label: '本命（三色＆赤ドラMAX）',
+        reason: '234の三色同順と赤ドラ0mを活かして満貫・跳満を狙う一打。8p・7pの搭子を外しても234sが両面＋嵌張の厚い形なのでテンパイ速度も十分。',
       },
       {
-        tileId: '5m',
+        tileId: '0m',
         rank: 'bad',
         label: 'スピード重視（打点放棄）',
-        reason: '完全イーシャンテンの受け入れ枚数最大を取るが、ドラを切ってしまい打点が安くなるため、南場で点差がある状況ではもったいない。',
+        reason: '完全イーシャンテンの受け入れ枚数最大を取るが、赤ドラを切ってしまい打点が安くなるため、南場で点差がある状況ではもったいない。',
       },
       {
         tileId: '8s',
@@ -105,20 +117,20 @@ export const INITIAL_PROBLEMS: Problem[] = [
         reason: '頭を固定せず、ピンズとソーズの両方を残す手。ただし頭が確定しないため最終形が弱くなりやすい。',
       },
     ],
-    explanation: '点差がある南場の3着目では、単なるアガリやすさだけでなく「打点」が必須となります。234の三色が見えているため、ピンズの78pの搭子を払うことで三色・ドラ1の確定満貫ルートを維持するのが現代麻雀の王道です。',
+    explanation: '点差がある南場の3着目では、単なるアガリやすさだけでなく「打点」が必須となります。手牌に赤5m（0m）があり、234の三色が見えているため、ピンズの78pの搭子を払うことで三色・赤1の確定満貫ルートを維持するのが現代麻雀の王道です。',
     author: '公式',
     createdAt: '2026-11-07',
     stats: {
       '7p': 62,
       '8s': 26,
-      '5m': 12,
+      '0m': 12,
     },
     comments: [
       {
         id: 'c-int-1',
         problemId: 'prob-intermediate-1',
         tileId: '7p',
-        comment: '南2局の3着目なら打点が必要。78pを外して234三色・ドラ1の満貫ルートへ！',
+        comment: '南2局の3着目なら打点が必要。78pを外して234三色・赤1の満貫ルートへ！',
         createdAt: '2026-11-07 14:10',
       },
       {
@@ -139,7 +151,7 @@ export const INITIAL_PROBLEMS: Problem[] = [
   },
   {
     id: 'prob-advanced-1',
-    title: '【上級】親リーチへのベタオリ：現物なしからの安全度比較',
+    title: '【上級】親リーチへのベタオリ：現物なしからの安全度比較（4家の河・盤面付き）',
     level: 'advanced',
     context: {
       round: '東2局',
@@ -147,8 +159,72 @@ export const INITIAL_PROBLEMS: Problem[] = [
       wind: '北家',
       dora: '8m',
       score: 26000,
+      scores: {
+        東家: 38000,
+        南家: 24000,
+        西家: 12000,
+        北家: 26000,
+      },
+      players: {
+        東家: {
+          wind: '東家',
+          score: 38000,
+          isReach: true,
+          melds: [],
+          discards: [
+            { tileId: '1m', isTsumogiri: false },
+            { tileId: '9p', isTsumogiri: true },
+            { tileId: '2s', isTsumogiri: true },
+            { tileId: '8p', isTsumogiri: false },
+            { tileId: '4m', isTsumogiri: false },
+            { tileId: '5z', isTsumogiri: true }, // 白
+            { tileId: '9m', isTsumogiri: false, isReach: true }, // リーチ宣言牌（手出し）
+            { tileId: '3p', isTsumogiri: true },
+            { tileId: '7s', isTsumogiri: true },
+          ],
+        },
+        南家: {
+          wind: '南家',
+          score: 24000,
+          isReach: false,
+          melds: ['7z-7z-7z'], // 中ポン
+          discards: [
+            { tileId: '9s', isTsumogiri: false },
+            { tileId: '1p', isTsumogiri: true },
+            { tileId: '1z', isTsumogiri: false },
+            { tileId: '3z', isTsumogiri: true },
+            { tileId: '9m', isTsumogiri: false },
+            { tileId: '6s', isTsumogiri: true },
+          ],
+        },
+        西家: {
+          wind: '西家',
+          score: 12000,
+          isReach: false,
+          melds: [],
+          discards: [
+            { tileId: '2z', isTsumogiri: false },
+            { tileId: '1s', isTsumogiri: true },
+            { tileId: '9m', isTsumogiri: true },
+            { tileId: '4m', isTsumogiri: false },
+            { tileId: '8p', isTsumogiri: true },
+          ],
+        },
+        北家: {
+          wind: '北家',
+          score: 26000,
+          isReach: false,
+          melds: [],
+          discards: [
+            { tileId: '1z', isTsumogiri: false },
+            { tileId: '2z', isTsumogiri: false },
+            { tileId: '9p', isTsumogiri: true },
+            { tileId: '9s', isTsumogiri: true },
+          ],
+        },
+      },
       scoreInfo: '東家(親): 38,000 / 南家: 24,000 / 西家: 12,000 / 北家(自分): 26,000（2着目）',
-      discardsInfo: '東家（親）から8巡目リーチ。親の捨て牌: 1m, 9p, 2s, 8p, 4m, 白, 9m。自分はノーテン・現物ゼロ。',
+      discardsInfo: '東家（親）から7巡目リーチ。河に1m, 9p, 2s, 8p, 4m, 白, 9m。南家は中をポン。自分はノーテン・現物ゼロ。',
       note: '親からリーチが入った局面。放銃すれば致命傷になるため完全撤退の手順。',
     },
     // 手牌14枚: 13枚理牌 [3m 5m 8m 1p 4p 7p 3s 6s 7s 9s 2z 4z 7z] + ツモ牌 [6m]
@@ -173,7 +249,7 @@ export const INITIAL_PROBLEMS: Problem[] = [
         reason: '2pが3枚見えている場合のワンチャンス端牌など、局所的な安全牌を探す。',
       },
     ],
-    explanation: '上級編のテーマは「完全なベタオリ手順」です。現物が1枚もない絶体絶命の場面で、字牌の生牌と数牌のワンチャンス・スジの危険度を比較し、最も打点が低く放銃確率の低い牌を選ぶ精密な安全度測定が求められます。',
+    explanation: '上級編のテーマは「完全なベタオリ手順」です。親の捨て牌のツモ切り・手出しと南家の中ポンを読み解き、現物が1枚もない絶体絶命の場面で、字牌の生牌と数牌のワンチャンス・スジの危険度を比較し、最も打点が低く放銃確率の低い牌を選ぶ精密な安全度測定が求められます。',
     author: '公式',
     createdAt: '2026-11-07',
     stats: {

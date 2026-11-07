@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { Problem, VoteComment } from '../types/mahjong';
+import { Problem, VoteComment, DiscardTile, PlayerSituation } from '../types/mahjong';
 import { MahjongTile } from './MahjongTile';
 import { getTileDisplay, sortHandWithTsumo } from '../utils/mahjongUtils';
 
@@ -9,6 +9,8 @@ interface ProblemCardProps {
   problem: Problem;
   onVote?: (problemId: string, tileId: string, comment?: string) => void;
 }
+
+const WINDS: Array<'東家' | '南家' | '西家' | '北家'> = ['東家', '南家', '西家', '北家'];
 
 export const ProblemCard: React.FC<ProblemCardProps> = ({ problem, onVote }) => {
   // 手牌13枚を自動理牌し、14枚目をツモ牌として保持
@@ -23,6 +25,10 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({ problem, onVote }) => 
   const [comments, setComments] = useState<VoteComment[]>(problem.comments || []);
   const [filterCommentTile, setFilterCommentTile] = useState<string>('all');
   const [additionalComment, setAdditionalComment] = useState('');
+
+  // 対局盤面ビューワー（各家の河・鳴き）
+  const [showRiverViewer, setShowRiverViewer] = useState(false);
+  const [selectedRiverWind, setSelectedRiverWind] = useState<'東家' | '南家' | '西家' | '北家'>('東家');
 
   const selectedTile = selectedTileIndex !== null ? sortedHand[selectedTileIndex] : null;
 
@@ -106,6 +112,11 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({ problem, onVote }) => 
     filterCommentTile === 'all' ? true : c.tileId === filterCommentTile
   );
 
+  // プレイヤーデータ
+  const players = problem.context.players;
+  const scores = problem.context.scores;
+  const hasDetailedBoard = Boolean(players && Object.keys(players).length > 0);
+
   return (
     <div className="w-full max-w-3xl bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-xl overflow-hidden transition-all mb-8">
       {/* ヘッダー部：問題情報 */}
@@ -131,7 +142,7 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({ problem, onVote }) => 
         </h3>
 
         {/* 局・巡目・ドラ状況 */}
-        <div className="space-y-2 bg-white dark:bg-zinc-900 p-3 sm:p-3.5 rounded-xl border border-zinc-200/80 dark:border-zinc-800">
+        <div className="space-y-2.5 bg-white dark:bg-zinc-900 p-3 sm:p-3.5 rounded-xl border border-zinc-200/80 dark:border-zinc-800">
           <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
             <div className="flex items-center gap-2">
               <span className="text-zinc-500 font-medium">局況:</span>
@@ -149,20 +160,54 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({ problem, onVote }) => 
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="text-zinc-500 font-medium text-xs sm:text-sm">ドラ:</span>
+              <span className="text-zinc-500 font-medium text-xs sm:text-sm">ドラ表示牌:</span>
               <MahjongTile tileId={problem.context.dora} size="sm" disabled />
             </div>
           </div>
 
-          {/* 点数状況（任意設定時） */}
-          {problem.context.scoreInfo && (
+          {/* 各家の点数チップ（構造化データがある場合） */}
+          {scores && (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 pt-1">
+              {WINDS.map((w) => {
+                const isSelf = w === problem.context.wind;
+                const sc = scores[w];
+                const selfScore = scores[problem.context.wind as '東家' | '南家' | '西家' | '北家'] || 25000;
+                const diff = sc - selfScore;
+                return (
+                  <div
+                    key={`sc-chip-${w}`}
+                    className={`px-2 py-1.5 rounded-lg border text-xs flex items-center justify-between ${
+                      isSelf
+                        ? 'bg-blue-50 dark:bg-blue-950/40 border-blue-300 dark:border-blue-800'
+                        : 'bg-zinc-50 dark:bg-zinc-800/60 border-zinc-200 dark:border-zinc-700'
+                    }`}
+                  >
+                    <span className="font-bold text-zinc-700 dark:text-zinc-300">
+                      {w} {isSelf && <span className="text-[10px] text-blue-600 font-bold">(自分)</span>}
+                    </span>
+                    <div className="text-right">
+                      <span className="font-mono font-bold">{sc?.toLocaleString()}</span>
+                      {!isSelf && sc !== undefined && (
+                        <span className={`block text-[9px] font-mono leading-none ${diff >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                          {diff >= 0 ? `+${diff}` : diff}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* 点数テキスト（フォールバック） */}
+          {problem.context.scoreInfo && !scores && (
             <div className="flex items-start gap-1.5 text-xs bg-blue-50/70 dark:bg-blue-950/30 text-blue-900 dark:text-blue-300 p-2 sm:p-2.5 rounded-lg border border-blue-200 dark:border-blue-900/50">
               <span className="font-bold shrink-0">📊 点数状況:</span>
               <span>{problem.context.scoreInfo}</span>
             </div>
           )}
 
-          {/* 捨て牌・他家状況（任意設定時） */}
+          {/* 捨て牌・他家状況テキスト */}
           {problem.context.discardsInfo && (
             <div className="flex items-start gap-1.5 text-xs bg-amber-50/70 dark:bg-amber-950/30 text-amber-900 dark:text-amber-300 p-2 sm:p-2.5 rounded-lg border border-amber-200 dark:border-amber-900/50">
               <span className="font-bold shrink-0">🀁 捨て牌・他家:</span>
@@ -174,6 +219,94 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({ problem, onVote }) => 
           {problem.context.note && !problem.context.discardsInfo && (
             <div className="text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-2.5 py-1.5 rounded-lg border border-amber-200 dark:border-amber-900/50">
               ⚠️ {problem.context.note}
+            </div>
+          )}
+
+          {/* ★ 各家の捨て牌（河）＆鳴き状況ビューワー開閉ボタン */}
+          {hasDetailedBoard && (
+            <div className="pt-1">
+              <button
+                type="button"
+                onClick={() => setShowRiverViewer(!showRiverViewer)}
+                className="w-full py-1.5 px-3 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700/80 rounded-lg text-xs font-bold text-zinc-700 dark:text-zinc-200 flex items-center justify-between transition-colors cursor-pointer"
+              >
+                <span className="flex items-center gap-1.5">
+                  <span>🀄</span>
+                  <span>対局盤面（各家の河・ツモ切り・鳴き状況）を確認</span>
+                </span>
+                <span className="text-[11px] text-blue-600 dark:text-blue-400">
+                  {showRiverViewer ? '▲ 閉じる' : '▼ 盤面を展開'}
+                </span>
+              </button>
+
+              {/* 盤面展開エリア */}
+              {showRiverViewer && players && (
+                <div className="mt-2 p-3 bg-zinc-100/90 dark:bg-zinc-800/90 rounded-xl border border-zinc-200 dark:border-zinc-700 space-y-3 animate-fade-in">
+                  <div className="flex items-center justify-between border-b border-zinc-200 dark:border-zinc-700 pb-1.5">
+                    <span className="text-xs font-bold text-zinc-700 dark:text-zinc-300">
+                      各家の河（薄暗い牌 = ツモ切り / 通常 = 手出し）
+                    </span>
+                    <div className="flex gap-1">
+                      {WINDS.map((w) => (
+                        <button
+                          key={`view-tab-${w}`}
+                          type="button"
+                          onClick={() => setSelectedRiverWind(w)}
+                          className={`px-2.5 py-0.5 rounded text-[11px] font-bold transition-all cursor-pointer ${
+                            selectedRiverWind === w
+                              ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900'
+                              : 'bg-white dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300'
+                          }`}
+                        >
+                          {w}
+                          {players[w]?.isReach && <span className="ml-1 text-[9px] text-red-500 font-bold">立直</span>}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* 選択された家の河 */}
+                  {players[selectedRiverWind] && (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-bold text-zinc-800 dark:text-zinc-200">
+                          {selectedRiverWind}の捨て牌（{players[selectedRiverWind].discards.length}枚）
+                        </span>
+                        {players[selectedRiverWind].melds && players[selectedRiverWind].melds.length > 0 && (
+                          <div className="flex items-center gap-1">
+                            <span className="text-zinc-500 text-[11px]">鳴き:</span>
+                            {players[selectedRiverWind].melds.map((m, mIdx) => (
+                              <span
+                                key={`m-${mIdx}`}
+                                className="bg-amber-100 dark:bg-amber-950 text-amber-900 dark:text-amber-200 px-1.5 py-0.5 rounded text-[10px] font-bold border border-amber-300"
+                              >
+                                {m}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {players[selectedRiverWind].discards.length === 0 ? (
+                        <p className="text-xs text-zinc-400 py-2">捨て牌データはありません</p>
+                      ) : (
+                        <div className="flex flex-wrap gap-1 p-2 bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-700/60">
+                          {players[selectedRiverWind].discards.map((tile, dIdx) => (
+                            <MahjongTile
+                              key={`v-discard-${dIdx}`}
+                              tileId={tile.tileId}
+                              size="sm"
+                              isTsumogiri={tile.isTsumogiri}
+                              isReach={tile.isReach || (players[selectedRiverWind].isReach && dIdx === players[selectedRiverWind].discards.length - 1)}
+                              disabled
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>

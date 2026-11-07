@@ -92,6 +92,8 @@ export async function getProblems(): Promise<Problem[]> {
           wind: row.wind,
           dora: row.dora,
           score: row.score,
+          scores: row.scores || undefined,
+          players: row.players || undefined,
           scoreInfo: row.score_info || row.scoreInfo || undefined,
           discardsInfo: row.discards_info || row.discardsInfo || undefined,
           note: row.note,
@@ -130,6 +132,8 @@ export async function createProblem(newProblem: Problem): Promise<boolean> {
       wind: newProblem.context.wind,
       dora: newProblem.context.dora,
       score: newProblem.context.score || 25000,
+      scores: newProblem.context.scores || null,
+      players: newProblem.context.players || null,
       score_info: newProblem.context.scoreInfo || null,
       discards_info: newProblem.context.discardsInfo || null,
       note: newProblem.context.note || null,
@@ -146,6 +150,8 @@ export async function createProblem(newProblem: Problem): Promise<boolean> {
       // 新カラム（score_info, discards_info）がまだDBに追加されていない場合の自動フォールバック
       delete payload.score_info;
       delete payload.discards_info;
+      delete payload.scores;
+      delete payload.players;
       const { error: fallbackErr } = await supabase.from('problems').insert([payload]);
       if (fallbackErr) {
         console.error('Failed to insert problem to Supabase:', fallbackErr);

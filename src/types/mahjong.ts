@@ -1,7 +1,7 @@
 export type Suit = 'm' | 'p' | 's' | 'z';
 
 export interface Tile {
-  id: string; // e.g. "1m", "5p", "7z", "0m"(赤)
+  id: string; // e.g. "1m", "5p", "7z", "0m"(赤5m)
   suit: Suit;
   value: number; // 1-9 for m, p, s; 1-7 for z
   isRed?: boolean;
@@ -24,6 +24,22 @@ export interface VoteComment {
   createdAt: string;
 }
 
+// 捨て牌（1牌）の情報：手出し・ツモ切り・リーチ宣言
+export interface DiscardTile {
+  tileId: string;
+  isTsumogiri: boolean; // true = ツモ切り (薄暗く表示), false = 手出し (通常)
+  isReach?: boolean;    // リーチ宣言牌（横向き）
+}
+
+// 各家の戦況（点数、河、鳴き牌、リーチ）
+export interface PlayerSituation {
+  wind: '東家' | '南家' | '西家' | '北家';
+  score: number;
+  discards: DiscardTile[];
+  melds: string[]; // 鳴き牌リスト 例: ["1m-2m-3m", "7z-7z-7z"]
+  isReach?: boolean;
+}
+
 export interface Problem {
   id: string;
   title: string;
@@ -32,10 +48,12 @@ export interface Problem {
     round: string; // e.g. "東1局"
     turn: number;  // 巡目 e.g. 6
     wind: string;  // 自家 e.g. "南家"
-    dora: string;  // ドラ表示牌 or ドラ e.g. "5p"
+    dora: string;  // ドラ表示牌 or ドラ e.g. "5p", "0m"
     score?: number; // 点数状況 (持ち点数値)
-    scoreInfo?: string; // 詳細な点数・順位状況 (e.g. "東家 36000 / 南家(自分) 24000 / 西家 20000 / 北家 20000")
-    discardsInfo?: string; // 捨て牌・他家状況 (e.g. "対面の親から6巡目リーチ、河に1m・8p・発")
+    scores?: Record<'東家' | '南家' | '西家' | '北家', number>; // 各家の点数
+    players?: Record<string, PlayerSituation>; // 各家の捨て牌・鳴き・リーチ状況
+    scoreInfo?: string; // テキスト要約
+    discardsInfo?: string; // テキスト要約
     note?: string;  // 状況補足
   };
   hand: string[]; // 14枚のTileId配列 (最後がツモ牌)
