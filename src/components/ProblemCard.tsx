@@ -3,6 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import { Problem, VoteComment, DiscardTile, PlayerSituation } from '../types/mahjong';
 import { MahjongTile } from './MahjongTile';
+import { MahjongRiver } from './MahjongRiver';
 import { getTileDisplay, sortHandWithTsumo } from '../utils/mahjongUtils';
 
 interface ProblemCardProps {
@@ -12,13 +13,21 @@ interface ProblemCardProps {
 
 const WINDS: Array<'東家' | '南家' | '西家' | '北家'> = ['東家', '南家', '西家', '北家'];
 
+// 投票用パレット牌
+const MAN_TILES = ['1m', '2m', '3m', '4m', '5m', '0m', '6m', '7m', '8m', '9m'];
+const PIN_TILES = ['1p', '2p', '3p', '4p', '5p', '0p', '6p', '7p', '8p', '9p'];
+const SOU_TILES = ['1s', '2s', '3s', '4s', '5s', '0s', '6s', '7s', '8s', '9s'];
+const ZI_TILES = ['1z', '2z', '3z', '4z', '5z', '6z', '7z'];
+const ALL_VOTE_TILES = [...MAN_TILES, ...PIN_TILES, ...SOU_TILES, ...ZI_TILES];
+
 export const ProblemCard: React.FC<ProblemCardProps> = ({ problem, onVote }) => {
   // 手牌13枚を自動理牌し、14枚目をツモ牌として保持
   const sortedHand = useMemo(() => {
-    return sortHandWithTsumo(problem.hand);
+    return sortHandWithTsumo(problem.hand || []);
   }, [problem.hand]);
 
   const [selectedTileIndex, setSelectedTileIndex] = useState<number | null>(null);
+  const [photoSelectedTile, setPhotoSelectedTile] = useState<string | null>(null);
   const [hasAnswered, setHasAnswered] = useState(false);
   const [userReason, setUserReason] = useState('');
   const [stats, setStats] = useState<Record<string, number>>(problem.stats);
@@ -26,11 +35,22 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({ problem, onVote }) => 
   const [filterCommentTile, setFilterCommentTile] = useState<string>('all');
   const [additionalComment, setAdditionalComment] = useState('');
 
+  // 写真拡大モーダル
+  const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
+
   // 対局盤面ビューワー（各家の河・鳴き）
   const [showRiverViewer, setShowRiverViewer] = useState(false);
   const [selectedRiverWind, setSelectedRiverWind] = useState<'東家' | '南家' | '西家' | '北家'>('東家');
 
-  const selectedTile = selectedTileIndex !== null ? sortedHand[selectedTileIndex] : null;
+  // 写真モードか手牌モードかの判定
+  const isPhotoMode = Boolean(problem.imageUrl && (!problem.hand || problem.hand.length === 0));
+
+  // 選択中の牌
+  const selectedTile = isPhotoMode
+    ? photoSelectedTile
+    : selectedTileIndex !== null
+    ? sortedHand[selectedTileIndex]
+    : null;
 
   const levelBadges = {
     beginner: { text: '初級編', bg: 'bg-emerald-100 text-emerald-800 border-emerald-300' },
@@ -45,7 +65,7 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({ problem, onVote }) => 
 
   // 投票実行（コメント付き）
   const handleSubmit = (withComment: boolean = true) => {
-    if (selectedTileIndex === null || !selectedTile || hasAnswered) return;
+    if (!selectedTile || hasAnswered) return;
 
     const finalComment = withComment && userReason.trim() ? userReason.trim() : '';
 
@@ -97,6 +117,7 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({ problem, onVote }) => 
   const handleReset = () => {
     setHasAnswered(false);
     setSelectedTileIndex(null);
+    setPhotoSelectedTile(null);
     setUserReason('');
   };
 
@@ -119,6 +140,29 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({ problem, onVote }) => 
 
   return (
     <div className="w-full max-w-3xl bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-xl overflow-hidden transition-all mb-8">
+      {/* 写真全画面拡大モーダル */}
+      {isPhotoModalOpen && problem.imageUrl && (
+        <div
+          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-3 sm:p-6 backdrop-blur-sm cursor-zoom-out"
+          onClick={() => setIsPhotoModalOpen(false)}
+        >
+          <div className="relative max-w-5xl max-h-[92vh] overflow-auto">
+            <img
+              src={problem.imageUrl}
+              alt="拡大写真"
+              className="max-w-full max-h-[90vh] object-contain rounded-xl shadow-2xl mx-auto"
+            />
+            <button
+              type="button"
+              onClick={() => setIsPhotoModalOpen(false)}
+              className="absolute top-2 right-2 bg-black/60 hover:bg-black text-white text-lg font-bold w-9 h-9 rounded-full flex items-center justify-center cursor-pointer"
+            >
+              &times;
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ヘッダー部：問題情報 */}
       <div className="p-4 sm:p-6 bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-200 dark:border-zinc-800">
         <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
@@ -130,6 +174,12 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({ problem, onVote }) => 
             >
               {levelBadges[problem.level].text}
             </span>
+            {problem.imageUrl && (
+              <span className="bg-purple-100 text-purple-800 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-300 dark:border-purple-800 text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
+                <span>📸</span>
+                <span>写真投稿</span>
+              </span>
+            )}
             <span className="text-xs text-zinc-500 dark:text-zinc-400">
               出題: {problem.author}
             </span>
@@ -165,7 +215,7 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({ problem, onVote }) => 
             </div>
           </div>
 
-          {/* 各家の点数チップ（構造化データがある場合） */}
+          {/* 各家の点数チップ */}
           {scores && (
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 pt-1">
               {WINDS.map((w) => {
@@ -222,7 +272,7 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({ problem, onVote }) => 
             </div>
           )}
 
-          {/* ★ 各家の捨て牌（河）＆鳴き状況ビューワー開閉ボタン */}
+          {/* ★ 各家の河（6枚切り×3段）＆鳴き状況ビューワー */}
           {hasDetailedBoard && (
             <div className="pt-1">
               <button
@@ -232,7 +282,7 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({ problem, onVote }) => 
               >
                 <span className="flex items-center gap-1.5">
                   <span>🀄</span>
-                  <span>対局盤面（各家の河・ツモ切り・鳴き状況）を確認</span>
+                  <span>対局盤面（各家の6枚×3段の河・ツモ切り・鳴き状況）を確認</span>
                 </span>
                 <span className="text-[11px] text-blue-600 dark:text-blue-400">
                   {showRiverViewer ? '▲ 閉じる' : '▼ 盤面を展開'}
@@ -244,7 +294,7 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({ problem, onVote }) => 
                 <div className="mt-2 p-3 bg-zinc-100/90 dark:bg-zinc-800/90 rounded-xl border border-zinc-200 dark:border-zinc-700 space-y-3 animate-fade-in">
                   <div className="flex items-center justify-between border-b border-zinc-200 dark:border-zinc-700 pb-1.5">
                     <span className="text-xs font-bold text-zinc-700 dark:text-zinc-300">
-                      各家の河（薄暗い牌 = ツモ切り / 通常 = 手出し）
+                      各家の河（6枚切り×3段：薄暗い牌 = ツモ切り / 通常 = 手出し）
                     </span>
                     <div className="flex gap-1">
                       {WINDS.map((w) => (
@@ -265,44 +315,29 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({ problem, onVote }) => 
                     </div>
                   </div>
 
-                  {/* 選択された家の河 */}
+                  {/* 選択された家の本物の河コンポーネント */}
                   {players[selectedRiverWind] && (
                     <div className="space-y-2">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="font-bold text-zinc-800 dark:text-zinc-200">
-                          {selectedRiverWind}の捨て牌（{players[selectedRiverWind].discards.length}枚）
-                        </span>
-                        {players[selectedRiverWind].melds && players[selectedRiverWind].melds.length > 0 && (
-                          <div className="flex items-center gap-1">
-                            <span className="text-zinc-500 text-[11px]">鳴き:</span>
-                            {players[selectedRiverWind].melds.map((m, mIdx) => (
-                              <span
-                                key={`m-${mIdx}`}
-                                className="bg-amber-100 dark:bg-amber-950 text-amber-900 dark:text-amber-200 px-1.5 py-0.5 rounded text-[10px] font-bold border border-amber-300"
-                              >
-                                {m}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-
-                      {players[selectedRiverWind].discards.length === 0 ? (
-                        <p className="text-xs text-zinc-400 py-2">捨て牌データはありません</p>
-                      ) : (
-                        <div className="flex flex-wrap gap-1 p-2 bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-700/60">
-                          {players[selectedRiverWind].discards.map((tile, dIdx) => (
-                            <MahjongTile
-                              key={`v-discard-${dIdx}`}
-                              tileId={tile.tileId}
-                              size="sm"
-                              isTsumogiri={tile.isTsumogiri}
-                              isReach={tile.isReach || (players[selectedRiverWind].isReach && dIdx === players[selectedRiverWind].discards.length - 1)}
-                              disabled
-                            />
+                      {players[selectedRiverWind].melds && players[selectedRiverWind].melds.length > 0 && (
+                        <div className="flex items-center gap-1.5 text-xs bg-amber-50 dark:bg-amber-950/40 p-2 rounded-lg border border-amber-200 dark:border-amber-900">
+                          <span className="text-zinc-600 dark:text-zinc-400 font-bold text-[11px]">副露（鳴き）:</span>
+                          {players[selectedRiverWind].melds.map((m, mIdx) => (
+                            <span
+                              key={`m-${mIdx}`}
+                              className="bg-amber-100 dark:bg-amber-950 text-amber-900 dark:text-amber-200 px-2 py-0.5 rounded text-xs font-bold border border-amber-300"
+                            >
+                              {m}
+                            </span>
                           ))}
                         </div>
                       )}
+
+                      <MahjongRiver
+                        discards={players[selectedRiverWind].discards}
+                        windLabel={selectedRiverWind}
+                        isReach={players[selectedRiverWind].isReach}
+                        interactive={false}
+                      />
                     </div>
                   )}
                 </div>
@@ -312,48 +347,101 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({ problem, onVote }) => 
         </div>
       </div>
 
-      {/* 手牌表示エリア (全14枚: 13枚理牌 + 1枚ツモ) */}
-      <div className="p-4 sm:p-8 flex flex-col items-center">
-        <div className="flex items-center justify-between w-full mb-3 px-2">
-          <p className="text-xs sm:text-sm font-medium text-zinc-500 dark:text-zinc-400">
-            {hasAnswered
-              ? '回答結果と雀士たちの集合知'
-              : '手牌14枚（配牌13枚 ＋ ツモ1枚）から切る牌をタップしてください'}
-          </p>
-          <span className="text-xs font-mono text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded">
-            手牌 {sortedHand.length}枚
-          </span>
-        </div>
-
-        {/* 14枚の手牌コンテナ (自動理牌済み) */}
-        <div className="w-full overflow-x-auto pb-4 pt-4 flex justify-center items-end">
-          <div className="flex items-end flex-nowrap">
-            {sortedHand.map((tileId, index) => {
-              const isTsumo = index === sortedHand.length - 1;
-              const isSelected = selectedTileIndex === index;
-              const isBestTile = hasAnswered && bestDiscard?.tileId === tileId;
-
-              return (
-                <MahjongTile
-                  key={`hand-${tileId}-${index}`}
-                  tileId={tileId}
-                  size="md"
-                  isTsumo={isTsumo}
-                  showTsumoLabel={isTsumo}
-                  selected={isSelected}
-                  disabled={hasAnswered}
-                  onClick={() => handleSelectTile(index)}
-                  badge={isBestTile ? '正解' : undefined}
-                />
-              );
-            })}
+      {/* 写真・手牌表示エリア */}
+      <div className="p-4 sm:p-6 flex flex-col items-center">
+        {/* 写真がある場合の画像表示 */}
+        {problem.imageUrl && (
+          <div className="w-full mb-4 text-center">
+            <div
+              className="relative inline-block max-w-full overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-700 shadow-md group cursor-zoom-in"
+              onClick={() => setIsPhotoModalOpen(true)}
+            >
+              <img
+                src={problem.imageUrl}
+                alt="問題の対局写真"
+                className="max-h-72 sm:max-h-96 w-auto object-contain mx-auto transition-transform group-hover:scale-101"
+              />
+              <div className="absolute bottom-2 right-2 bg-black/70 hover:bg-black text-white text-[10px] font-bold px-2 py-1 rounded-md flex items-center gap-1">
+                <span>🔍 タップで拡大</span>
+              </div>
+            </div>
           </div>
-        </div>
+        )}
+
+        {/* 手牌14枚コンテナ（手牌がある場合） */}
+        {sortedHand.length > 0 && (
+          <div className="w-full flex flex-col items-center">
+            <div className="flex items-center justify-between w-full mb-3 px-2">
+              <p className="text-xs sm:text-sm font-medium text-zinc-500 dark:text-zinc-400">
+                {hasAnswered
+                  ? '回答結果と雀士たちの集合知'
+                  : '手牌14枚から切る牌をタップしてください'}
+              </p>
+              <span className="text-xs font-mono text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded">
+                手牌 {sortedHand.length}枚
+              </span>
+            </div>
+
+            <div className="w-full overflow-x-auto pb-4 pt-2 flex justify-center items-end">
+              <div className="flex items-end flex-nowrap">
+                {sortedHand.map((tileId, index) => {
+                  const isTsumo = index === sortedHand.length - 1;
+                  const isSelected = selectedTileIndex === index;
+                  const isBestTile = hasAnswered && bestDiscard?.tileId === tileId;
+
+                  return (
+                    <MahjongTile
+                      key={`hand-${tileId}-${index}`}
+                      tileId={tileId}
+                      size="md"
+                      isTsumo={isTsumo}
+                      showTsumoLabel={isTsumo}
+                      selected={isSelected}
+                      disabled={hasAnswered}
+                      onClick={() => handleSelectTile(index)}
+                      badge={isBestTile ? '正解' : undefined}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 写真投稿モードで手牌がない場合の打牌選択パレット */}
+        {isPhotoMode && !hasAnswered && (
+          <div className="w-full max-w-lg mt-2 p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-200 dark:border-zinc-700/60 space-y-2">
+            <span className="text-xs font-bold text-zinc-700 dark:text-zinc-300 block">
+              写真を見て、何を切るか下の牌から選択してください:
+            </span>
+            <div className="flex flex-wrap gap-1 max-h-32 overflow-y-auto p-1.5 bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-700">
+              {ALL_VOTE_TILES.map((tileId) => {
+                const isSelected = photoSelectedTile === tileId;
+                const disp = getTileDisplay(tileId);
+                return (
+                  <button
+                    key={`photo-vote-${tileId}`}
+                    type="button"
+                    onClick={() => setPhotoSelectedTile(tileId)}
+                    className={`px-2 py-1 rounded text-xs font-bold border transition-all cursor-pointer ${
+                      isSelected
+                        ? 'bg-blue-600 text-white border-blue-600 scale-105 shadow-xs'
+                        : 'bg-zinc-50 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border-zinc-200 dark:border-zinc-700 hover:border-blue-400'
+                    }`}
+                  >
+                    <span className={disp.suitColor}>{disp.topText}</span>
+                    <span>{disp.bottomText}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* 回答前の決定 ＆ 理由入力エリア */}
         {!hasAnswered && (
           <div className="mt-4 w-full max-w-md flex flex-col items-center gap-3">
-            {selectedTileIndex !== null && selectedTile ? (
+            {selectedTile ? (
               <div className="w-full bg-blue-50/60 dark:bg-blue-950/30 p-3 sm:p-4 rounded-2xl border border-blue-200 dark:border-blue-900/60 space-y-2.5 animate-fade-in">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-blue-900 dark:text-blue-200 flex items-center gap-1.5">
@@ -402,7 +490,7 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({ problem, onVote }) => 
               </div>
             ) : (
               <p className="text-xs text-zinc-400 py-2">
-                上の手牌から切りたい牌をタップしてください
+                {isPhotoMode ? '上のパレットから切りたい牌を選んでください' : '上の手牌から切りたい牌をタップしてください'}
               </p>
             )}
           </div>

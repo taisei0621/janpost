@@ -44,6 +44,7 @@ export interface Problem {
   id: string;
   title: string;
   level: ProblemLevel;
+  imageUrl?: string; // 写真・スクショ投稿時の画像URL (Base64)
   context: {
     round: string; // e.g. "東1局"
     turn: number;  // 巡目 e.g. 6
@@ -56,7 +57,7 @@ export interface Problem {
     discardsInfo?: string; // テキスト要約
     note?: string;  // 状況補足
   };
-  hand: string[]; // 14枚のTileId配列 (最後がツモ牌)
+  hand: string[]; // 14枚のTileId配列 (最後がツモ牌、写真モード時は空配列も可)
   discards: RecommendedDiscard[];
   explanation: string;
   author: string;

@@ -86,6 +86,7 @@ export async function getProblems(): Promise<Problem[]> {
         id: row.id,
         title: row.title,
         level: row.level,
+        imageUrl: row.image_url || row.imageUrl || undefined,
         context: {
           round: row.round,
           turn: row.turn,
@@ -136,6 +137,7 @@ export async function createProblem(newProblem: Problem): Promise<boolean> {
       players: newProblem.context.players || null,
       score_info: newProblem.context.scoreInfo || null,
       discards_info: newProblem.context.discardsInfo || null,
+      image_url: newProblem.imageUrl || null,
       note: newProblem.context.note || null,
       hand: newProblem.hand,
       discards: newProblem.discards,
@@ -150,6 +152,7 @@ export async function createProblem(newProblem: Problem): Promise<boolean> {
       // 新カラム（score_info, discards_info）がまだDBに追加されていない場合の自動フォールバック
       delete payload.score_info;
       delete payload.discards_info;
+      delete payload.image_url;
       delete payload.scores;
       delete payload.players;
       const { error: fallbackErr } = await supabase.from('problems').insert([payload]);

@@ -1,8 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Problem, ProblemLevel, RecommendedDiscard, DiscardTile, PlayerSituation } from '../types/mahjong';
 import { MahjongTile } from './MahjongTile';
+import { MahjongRiver } from './MahjongRiver';
+import { compressImage } from '../utils/imageUtils';
 import {
   getTileDisplay,
   sortTiles,
@@ -17,7 +19,7 @@ interface PostProblemModalProps {
   onAddProblem: (newProblem: Problem) => void;
 }
 
-// 牌グループ定義（赤5萬・赤5筒・赤5索を追加！）
+// 牌グループ定義（赤5萬・赤5筒・赤5索）
 const MAN_TILES = ['1m', '2m', '3m', '4m', '5m', '0m', '6m', '7m', '8m', '9m'];
 const PIN_TILES = ['1p', '2p', '3p', '4p', '5p', '0p', '6p', '7p', '8p', '9p'];
 const SOU_TILES = ['1s', '2s', '3s', '4s', '5s', '0s', '6s', '7s', '8s', '9s'];
@@ -31,6 +33,12 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
   onClose,
   onAddProblem,
 }) => {
+  // 投稿モード: 手牌パレットで作成 or 写真・スクショで作成
+  const [postMode, setPostMode] = useState<'tiles' | 'photo'>('tiles');
+  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [isCompressing, setIsCompressing] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [title, setTitle] = useState('');
   const [level, setLevel] = useState<ProblemLevel>('intermediate');
   const [round, setRound] = useState('東1局');
@@ -82,6 +90,23 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
   const [note, setNote] = useState('');
 
   if (!isOpen) return null;
+
+  // 写真選択ハンドラー（自動圧縮）
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsCompressing(true);
+    try {
+      const compressed = await compressImage(file, 1200, 0.8);
+      setUploadedImage(compressed);
+    } catch (err) {
+      console.error('Image compression failed:', err);
+      alert('写真の読み込みに失敗しました。別の形式の画像を試してください。');
+    } finally {
+      setIsCompressing(false);
+    }
+  };
 
   // 使用済み牌の全体リスト（ドラ + 手牌）
   const usedTilesInHandAndDora = [dora, ...hand];
@@ -137,22 +162,34 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
   };
 
   // 捨て牌のツモ切り/手出しトグル
-  const handleToggleDiscardTsumogiri = (windKey: '東家' | '南家' | '西家' | '北家', index: number) => {
+  const handleToggleDiscardTsumogiri = (index: number) => {
     setRiverDiscards((prev) => {
-      const list = [...prev[windKey]];
+      const list = [...prev[activeRiverWind]];
       list[index] = {
         ...list[index],
         isTsumogiri: !list[index].isTsumogiri,
       };
-      return { ...prev, [windKey]: list };
+      return { ...prev, [activeRiverWind]: list };
+    });
+  };
+
+  // 捨て牌のリーチ宣言牌トグル
+  const handleToggleDiscardReach = (index: number) => {
+    setRiverDiscards((prev) => {
+      const list = [...prev[activeRiverWind]];
+      list[index] = {
+        ...list[index],
+        isReach: !list[index].isReach,
+      };
+      return { ...prev, [activeRiverWind]: list };
     });
   };
 
   // 捨て牌を1枚削除
-  const handleRemoveDiscard = (windKey: '東家' | '南家' | '西家' | '北家', index: number) => {
+  const handleRemoveDiscard = (index: number) => {
     setRiverDiscards((prev) => ({
       ...prev,
-      [windKey]: prev[windKey].filter((_, i) => i !== index),
+      [activeRiverWind]: prev[activeRiverWind].filter((_, i) => i !== index),
     }));
   };
 
@@ -179,12 +216,21 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (hand.length !== 14) {
-      alert(`手牌はツモ牌を含めてちょうど14枚選んでください！（現在 ${hand.length}枚）`);
-      return;
+    // 写真モードの場合は手牌14枚チェックをスキップ可能（写真があればOK）
+    if (postMode === 'tiles') {
+      if (hand.length !== 14) {
+        alert(`手牌はツモ牌を含めてちょうど14枚選んでください！（現在 ${hand.length}枚）`);
+        return;
+      }
+    } else {
+      if (!uploadedImage) {
+        alert('対局のスクリーンショットや手牌の写真をアップロードしてください！');
+        return;
+      }
     }
+
     if (!bestDiscard) {
-      alert('正解（本命打牌）を選択してください！');
+      alert('正解（本命の打牌）を選択してください！');
       return;
     }
 
@@ -227,6 +273,7 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
       id: `prob-user-${Date.now()}`,
       title: title || `【${level === 'beginner' ? '初級' : level === 'intermediate' ? '中級' : '上級'}】迷った一打`,
       level,
+      imageUrl: postMode === 'photo' && uploadedImage ? uploadedImage : undefined,
       context: {
         round,
         turn: Number(turn),
@@ -239,7 +286,7 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
         discardsInfo: (discardsInfoSummary + ' ' + note).trim() || undefined,
         note: note.trim() || undefined,
       },
-      hand: sortTiles(hand), // 投稿時に自動理牌
+      hand: postMode === 'tiles' ? sortTiles(hand) : hand,
       discards,
       explanation: explanation || '投稿者による解説はありません。',
       author: author || '名無しの雀士',
@@ -280,7 +327,87 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
           </button>
         </div>
 
+        {/* 投稿モード切り替えタブ（手牌パレット vs 写真・スクショ） */}
+        <div className="flex p-1 bg-zinc-100 dark:bg-zinc-800 rounded-xl mb-4 gap-1">
+          <button
+            type="button"
+            onClick={() => setPostMode('tiles')}
+            className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+              postMode === 'tiles'
+                ? 'bg-white dark:bg-zinc-900 text-blue-600 dark:text-blue-400 shadow-xs'
+                : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900'
+            }`}
+          >
+            <span>🀄</span>
+            <span>牌パレットで手牌を作成</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setPostMode('photo')}
+            className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+              postMode === 'photo'
+                ? 'bg-white dark:bg-zinc-900 text-blue-600 dark:text-blue-400 shadow-xs'
+                : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900'
+            }`}
+          >
+            <span>📸</span>
+            <span>写真・スクショで即投稿</span>
+            <span className="text-[10px] px-1.5 py-0.2 bg-amber-500 text-white rounded-full">手軽！</span>
+          </button>
+        </div>
+
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* 写真投稿モード時の画像アップロードUI */}
+          {postMode === 'photo' && (
+            <div className="p-4 bg-blue-50/50 dark:bg-blue-950/20 border-2 border-dashed border-blue-300 dark:border-blue-800 rounded-2xl text-center space-y-3">
+              <input
+                type="file"
+                ref={fileInputRef}
+                accept="image/*"
+                onChange={handleImageUpload}
+                className="hidden"
+              />
+
+              {uploadedImage ? (
+                <div className="space-y-2">
+                  <div className="relative max-h-64 overflow-hidden rounded-xl border border-zinc-300 dark:border-zinc-700 mx-auto inline-block shadow-md">
+                    <img
+                      src={uploadedImage}
+                      alt="投稿写真プレビュー"
+                      className="max-h-64 object-contain mx-auto"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setUploadedImage(null)}
+                      className="absolute top-2 right-2 bg-black/70 hover:bg-black text-white text-xs px-2.5 py-1 rounded-full cursor-pointer transition-colors"
+                    >
+                      写真を変更
+                    </button>
+                  </div>
+                  <p className="text-xs text-emerald-600 font-bold">✓ 写真の読み込みが完了しました（自動軽量化済み）</p>
+                </div>
+              ) : (
+                <div className="py-6 space-y-2">
+                  <span className="text-3xl">📷</span>
+                  <div className="text-xs font-bold text-zinc-700 dark:text-zinc-300">
+                    対局画面のスクリーンショットや手牌の写真をアップロード
+                  </div>
+                  <p className="text-[11px] text-zinc-500">
+                    雀魂、天鳳、Mリーグ、雀荘での写真など、1枚の画像で即座に出題できます
+                  </p>
+                  <button
+                    type="button"
+                    disabled={isCompressing}
+                    onClick={() => fileInputRef.current?.click()}
+                    className="mt-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-md transition-all cursor-pointer"
+                  >
+                    {isCompressing ? '写真を圧縮中...' : '写真・画像を選択する'}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* タイトルと難易度 */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="sm:col-span-2">
@@ -363,7 +490,7 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
             </div>
           </div>
 
-          {/* ★ 詳細な対局戦況（点数状況タブ ＆ 捨て牌・鳴きタブ） */}
+          {/* ★ 詳細な対局戦況（点数状況タブ ＆ 実際の河（6枚×3段）タブ） */}
           <div className="border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden bg-zinc-50/50 dark:bg-zinc-800/30">
             <button
               type="button"
@@ -373,7 +500,7 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
               <div className="flex items-center gap-2">
                 <span>📋</span>
                 <span className="text-zinc-900 dark:text-zinc-100">
-                  実戦状況の精密設定（各家の点数・捨て牌・鳴き・リーチ）
+                  実戦状況の精密設定（各家の点数・捨て牌（6枚×3段の河）・鳴き）
                 </span>
                 <span className="text-[10px] text-zinc-400 font-normal">（任意）</span>
               </div>
@@ -406,7 +533,7 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
                         : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800'
                     }`}
                   >
-                    🀁 各家の捨て牌（河）・鳴き
+                    🀁 各家の河（6枚×3段）・鳴き
                   </button>
                   <button
                     type="button"
@@ -485,7 +612,7 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
                   </div>
                 )}
 
-                {/* 2. 各家の捨て牌（河）・鳴き設定 */}
+                {/* 2. 各家の捨て牌（本物の6枚×3段の河）・鳴き設定 */}
                 {activeContextSubTab === 'river' && (
                   <div className="space-y-3">
                     {/* 家タブ切替 */}
@@ -503,7 +630,7 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
                             }`}
                           >
                             {w} {w === wind ? '(自分)' : ''}
-                            {riverReach[w] && <span className="ml-1 text-[9px] text-red-500">立直</span>}
+                            {riverReach[w] && <span className="ml-1 text-[9px] text-red-500 font-bold">立直</span>}
                           </button>
                         ))}
                       </div>
@@ -553,61 +680,16 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
                       </div>
                     </div>
 
-                    {/* 河（捨て牌表示エリア） */}
-                    <div className="p-2.5 bg-zinc-100 dark:bg-zinc-800 rounded-xl min-h-16">
-                      <div className="flex items-center justify-between mb-1.5">
-                        <span className="text-[11px] font-bold text-zinc-600 dark:text-zinc-400">
-                          {activeRiverWind}の河（{riverDiscards[activeRiverWind].length}枚）
-                          <span className="font-normal text-[10px] text-zinc-400 ml-1.5">
-                            ※タップで「手出し ⇄ ツモ切り」切替、右クリック/長押しで削除
-                          </span>
-                        </span>
-                        {riverDiscards[activeRiverWind].length > 0 && (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setRiverDiscards((prev) => ({
-                                ...prev,
-                                [activeRiverWind]: [],
-                              }))
-                            }
-                            className="text-[10px] text-red-500 hover:underline cursor-pointer"
-                          >
-                            河を全消去
-                          </button>
-                        )}
-                      </div>
-
-                      {riverDiscards[activeRiverWind].length === 0 ? (
-                        <p className="text-xs text-zinc-400 py-3 text-center">
-                          下のパレットから牌をタップして捨て牌を追加してください
-                        </p>
-                      ) : (
-                        <div className="flex flex-wrap gap-1 items-center">
-                          {riverDiscards[activeRiverWind].map((tile, idx) => (
-                            <div key={`discard-${idx}`} className="relative group">
-                              <MahjongTile
-                                tileId={tile.tileId}
-                                size="sm"
-                                isTsumogiri={tile.isTsumogiri}
-                                isReach={riverReach[activeRiverWind] && idx === riverDiscards[activeRiverWind].length - 1}
-                                onClick={() => handleToggleDiscardTsumogiri(activeRiverWind, idx)}
-                              />
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleRemoveDiscard(activeRiverWind, idx);
-                                }}
-                                className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-600 text-white rounded-full text-[9px] flex items-center justify-center cursor-pointer shadow-xs"
-                              >
-                                &times;
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
+                    {/* ★ 実際の河（6枚切り×3段）コンポーネント */}
+                    <MahjongRiver
+                      discards={riverDiscards[activeRiverWind]}
+                      windLabel={activeRiverWind}
+                      isReach={riverReach[activeRiverWind]}
+                      interactive
+                      onToggleTsumogiri={handleToggleDiscardTsumogiri}
+                      onRemoveTile={handleRemoveDiscard}
+                      onToggleReach={handleToggleDiscardReach}
+                    />
 
                     {/* 鳴き牌（副露）設定 */}
                     <div className="bg-zinc-50 dark:bg-zinc-800/50 p-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700/60 flex items-center justify-between">
@@ -649,7 +731,7 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
                     {/* 河用クイック追加パレット */}
                     <div className="pt-1">
                       <span className="text-[11px] font-bold text-zinc-500 mb-1 block">
-                        河に追加する牌をタップ（{discardMode === 'tsumogiri' ? '🔄 ツモ切り' : '✋ 手出し'}）:
+                        河に追加する牌をタップ（{discardMode === 'tsumogiri' ? '🔄 ツモ切り' : '✋ 手出し'}で6枚×3段に追加されます）:
                       </span>
                       <div className="flex flex-wrap gap-1 p-2 bg-zinc-50 dark:bg-zinc-800/40 rounded-lg max-h-24 overflow-y-auto">
                         {ALL_TILES.map((t) => (
@@ -686,206 +768,211 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
             )}
           </div>
 
-          {/* 現在選択中の手牌 (14枚) */}
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <label className="text-xs font-bold text-zinc-700 dark:text-zinc-300">
-                  選択した手牌 ({hand.length} / 14枚)
-                </label>
-                <span className="text-[10px] text-zinc-400">※タップで削除</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={handleSort}
-                  className="text-xs text-blue-600 dark:text-blue-400 font-bold hover:underline cursor-pointer"
-                >
-                  🔄 理牌する
-                </button>
-                {hand.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => setHand([])}
-                    className="text-xs text-red-500 hover:underline cursor-pointer"
-                  >
-                    全消去
-                  </button>
-                )}
-              </div>
-            </div>
+          {/* 手牌パレット作成モード時の手牌表示 */}
+          {postMode === 'tiles' && (
+            <>
+              {/* 現在選択中の手牌 (14枚) */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs font-bold text-zinc-700 dark:text-zinc-300">
+                      選択した手牌 ({hand.length} / 14枚)
+                    </label>
+                    <span className="text-[10px] text-zinc-400">※タップで削除</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleSort}
+                      className="text-xs text-blue-600 dark:text-blue-400 font-bold hover:underline cursor-pointer"
+                    >
+                      🔄 理牌する
+                    </button>
+                    {hand.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setHand([])}
+                        className="text-xs text-red-500 hover:underline cursor-pointer"
+                      >
+                        全消去
+                      </button>
+                    )}
+                  </div>
+                </div>
 
-            <div className="min-h-14 p-2.5 bg-zinc-100 dark:bg-zinc-800 rounded-xl flex items-center justify-start gap-1 overflow-x-auto border-2 border-dashed border-zinc-300 dark:border-zinc-700">
-              {hand.length === 0 ? (
-                <span className="text-xs text-zinc-400 mx-auto py-2">
-                  下のパレットから牌をタップして14枚選んでください（ドラ含め同牌4枚まで）
-                </span>
-              ) : (
-                hand.map((tileId, idx) => (
-                  <MahjongTile
-                    key={`chosen-${tileId}-${idx}`}
-                    tileId={tileId}
-                    size="sm"
-                    isTsumo={idx === 13}
-                    showTsumoLabel={idx === 13}
-                    onClick={() => handleRemoveTile(idx)}
-                  />
-                ))
-              )}
-            </div>
-          </div>
-
-          {/* ★ 牌パレット (4段整列 ＋ 赤5萬・赤5筒・赤5索 ＋ 4枚制限バリデーション) */}
-          <div className="bg-zinc-50 dark:bg-zinc-800/60 p-3 rounded-xl border border-zinc-200 dark:border-zinc-700/60 space-y-2">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs font-bold text-zinc-700 dark:text-zinc-300">
-                  牌パレット（クリックで手牌に追加）
-                </span>
-                <span className="text-[10px] text-zinc-400">※ドラ表示牌を含め最大4枚まで</span>
-              </div>
-              <label className="flex items-center gap-1.5 text-[11px] text-zinc-500 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={autoSort}
-                  onChange={(e) => setAutoSort(e.target.checked)}
-                  className="rounded text-blue-600"
-                />
-                自動理牌
-              </label>
-            </div>
-
-            <div className="space-y-1.5">
-              {/* 萬子 */}
-              <div className="flex items-center gap-1 overflow-x-auto pb-1">
-                <span className="text-[10px] font-bold text-red-600 w-5 shrink-0">萬</span>
-                <div className="flex gap-1">
-                  {MAN_TILES.map((t) => {
-                    const remaining = getRemainingCount(t);
-                    const isDisabled = remaining <= 0;
-                    return (
-                      <div key={`pal-${t}`} className="relative">
-                        <MahjongTile
-                          tileId={t}
-                          size="xs"
-                          disabled={isDisabled}
-                          onClick={() => handleAddTile(t)}
-                        />
-                        {remaining <= 1 && (
-                          <span
-                            className={`absolute -top-1 -right-1 text-[8px] font-bold px-1 rounded-full ${
-                              remaining === 0 ? 'bg-zinc-400 text-white' : 'bg-amber-500 text-white'
-                            }`}
-                          >
-                            残{remaining}
-                          </span>
-                        )}
-                      </div>
-                    );
-                  })}
+                <div className="min-h-14 p-2.5 bg-zinc-100 dark:bg-zinc-800 rounded-xl flex items-center justify-start gap-1 overflow-x-auto border-2 border-dashed border-zinc-300 dark:border-zinc-700">
+                  {hand.length === 0 ? (
+                    <span className="text-xs text-zinc-400 mx-auto py-2">
+                      下のパレットから牌をタップして14枚選んでください（ドラ含め同牌4枚まで）
+                    </span>
+                  ) : (
+                    hand.map((tileId, idx) => (
+                      <MahjongTile
+                        key={`chosen-${tileId}-${idx}`}
+                        tileId={tileId}
+                        size="sm"
+                        isTsumo={idx === 13}
+                        showTsumoLabel={idx === 13}
+                        onClick={() => handleRemoveTile(idx)}
+                      />
+                    ))
+                  )}
                 </div>
               </div>
 
-              {/* 筒子 */}
-              <div className="flex items-center gap-1 overflow-x-auto pb-1">
-                <span className="text-[10px] font-bold text-blue-600 w-5 shrink-0">筒</span>
-                <div className="flex gap-1">
-                  {PIN_TILES.map((t) => {
-                    const remaining = getRemainingCount(t);
-                    const isDisabled = remaining <= 0;
-                    return (
-                      <div key={`pal-${t}`} className="relative">
-                        <MahjongTile
-                          tileId={t}
-                          size="xs"
-                          disabled={isDisabled}
-                          onClick={() => handleAddTile(t)}
-                        />
-                        {remaining <= 1 && (
-                          <span
-                            className={`absolute -top-1 -right-1 text-[8px] font-bold px-1 rounded-full ${
-                              remaining === 0 ? 'bg-zinc-400 text-white' : 'bg-amber-500 text-white'
-                            }`}
-                          >
-                            残{remaining}
-                          </span>
-                        )}
-                      </div>
-                    );
-                  })}
+              {/* 牌パレット (4段整列 ＋ 赤5萬・赤5筒・赤5索 ＋ 4枚制限バリデーション) */}
+              <div className="bg-zinc-50 dark:bg-zinc-800/60 p-3 rounded-xl border border-zinc-200 dark:border-zinc-700/60 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-bold text-zinc-700 dark:text-zinc-300">
+                      牌パレット（クリックで手牌に追加）
+                    </span>
+                    <span className="text-[10px] text-zinc-400">※ドラ表示牌を含め最大4枚まで</span>
+                  </div>
+                  <label className="flex items-center gap-1.5 text-[11px] text-zinc-500 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={autoSort}
+                      onChange={(e) => setAutoSort(e.target.checked)}
+                      className="rounded text-blue-600"
+                    />
+                    自動理牌
+                  </label>
+                </div>
+
+                <div className="space-y-1.5">
+                  {/* 萬子 */}
+                  <div className="flex items-center gap-1 overflow-x-auto pb-1">
+                    <span className="text-[10px] font-bold text-red-600 w-5 shrink-0">萬</span>
+                    <div className="flex gap-1">
+                      {MAN_TILES.map((t) => {
+                        const remaining = getRemainingCount(t);
+                        const isDisabled = remaining <= 0;
+                        return (
+                          <div key={`pal-${t}`} className="relative">
+                            <MahjongTile
+                              tileId={t}
+                              size="xs"
+                              disabled={isDisabled}
+                              onClick={() => handleAddTile(t)}
+                            />
+                            {remaining <= 1 && (
+                              <span
+                                className={`absolute -top-1 -right-1 text-[8px] font-bold px-1 rounded-full ${
+                                  remaining === 0 ? 'bg-zinc-400 text-white' : 'bg-amber-500 text-white'
+                                }`}
+                              >
+                                残{remaining}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* 筒子 */}
+                  <div className="flex items-center gap-1 overflow-x-auto pb-1">
+                    <span className="text-[10px] font-bold text-blue-600 w-5 shrink-0">筒</span>
+                    <div className="flex gap-1">
+                      {PIN_TILES.map((t) => {
+                        const remaining = getRemainingCount(t);
+                        const isDisabled = remaining <= 0;
+                        return (
+                          <div key={`pal-${t}`} className="relative">
+                            <MahjongTile
+                              tileId={t}
+                              size="xs"
+                              disabled={isDisabled}
+                              onClick={() => handleAddTile(t)}
+                            />
+                            {remaining <= 1 && (
+                              <span
+                                className={`absolute -top-1 -right-1 text-[8px] font-bold px-1 rounded-full ${
+                                  remaining === 0 ? 'bg-zinc-400 text-white' : 'bg-amber-500 text-white'
+                                }`}
+                              >
+                                残{remaining}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* 索子 */}
+                  <div className="flex items-center gap-1 overflow-x-auto pb-1">
+                    <span className="text-[10px] font-bold text-emerald-600 w-5 shrink-0">索</span>
+                    <div className="flex gap-1">
+                      {SOU_TILES.map((t) => {
+                        const remaining = getRemainingCount(t);
+                        const isDisabled = remaining <= 0;
+                        return (
+                          <div key={`pal-${t}`} className="relative">
+                            <MahjongTile
+                              tileId={t}
+                              size="xs"
+                              disabled={isDisabled}
+                              onClick={() => handleAddTile(t)}
+                            />
+                            {remaining <= 1 && (
+                              <span
+                                className={`absolute -top-1 -right-1 text-[8px] font-bold px-1 rounded-full ${
+                                  remaining === 0 ? 'bg-zinc-400 text-white' : 'bg-amber-500 text-white'
+                                }`}
+                              >
+                                残{remaining}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* 字牌 */}
+                  <div className="flex items-center gap-1 overflow-x-auto pb-1">
+                    <span className="text-[10px] font-bold text-purple-600 w-5 shrink-0">字</span>
+                    <div className="flex gap-1">
+                      {ZI_TILES.map((t) => {
+                        const remaining = getRemainingCount(t);
+                        const isDisabled = remaining <= 0;
+                        return (
+                          <div key={`pal-${t}`} className="relative">
+                            <MahjongTile
+                              tileId={t}
+                              size="xs"
+                              disabled={isDisabled}
+                              onClick={() => handleAddTile(t)}
+                            />
+                            {remaining <= 1 && (
+                              <span
+                                className={`absolute -top-1 -right-1 text-[8px] font-bold px-1 rounded-full ${
+                                  remaining === 0 ? 'bg-zinc-400 text-white' : 'bg-amber-500 text-white'
+                                }`}
+                              >
+                                残{remaining}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
               </div>
+            </>
+          )}
 
-              {/* 索子 */}
-              <div className="flex items-center gap-1 overflow-x-auto pb-1">
-                <span className="text-[10px] font-bold text-emerald-600 w-5 shrink-0">索</span>
-                <div className="flex gap-1">
-                  {SOU_TILES.map((t) => {
-                    const remaining = getRemainingCount(t);
-                    const isDisabled = remaining <= 0;
-                    return (
-                      <div key={`pal-${t}`} className="relative">
-                        <MahjongTile
-                          tileId={t}
-                          size="xs"
-                          disabled={isDisabled}
-                          onClick={() => handleAddTile(t)}
-                        />
-                        {remaining <= 1 && (
-                          <span
-                            className={`absolute -top-1 -right-1 text-[8px] font-bold px-1 rounded-full ${
-                              remaining === 0 ? 'bg-zinc-400 text-white' : 'bg-amber-500 text-white'
-                            }`}
-                          >
-                            残{remaining}
-                          </span>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* 字牌 */}
-              <div className="flex items-center gap-1 overflow-x-auto pb-1">
-                <span className="text-[10px] font-bold text-purple-600 w-5 shrink-0">字</span>
-                <div className="flex gap-1">
-                  {ZI_TILES.map((t) => {
-                    const remaining = getRemainingCount(t);
-                    const isDisabled = remaining <= 0;
-                    return (
-                      <div key={`pal-${t}`} className="relative">
-                        <MahjongTile
-                          tileId={t}
-                          size="xs"
-                          disabled={isDisabled}
-                          onClick={() => handleAddTile(t)}
-                        />
-                        {remaining <= 1 && (
-                          <span
-                            className={`absolute -top-1 -right-1 text-[8px] font-bold px-1 rounded-full ${
-                              remaining === 0 ? 'bg-zinc-400 text-white' : 'bg-amber-500 text-white'
-                            }`}
-                          >
-                            残{remaining}
-                          </span>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* 正解打牌の選択（手牌14枚から選択） */}
+          {/* 正解打牌の選択 */}
           <div className="bg-blue-50/50 dark:bg-blue-950/20 p-3 rounded-xl border border-blue-200 dark:border-blue-900/60 space-y-2">
             <label className="block text-xs font-bold text-blue-900 dark:text-blue-300">
               正解（本命の打牌）を選択してください
             </label>
-            {hand.length === 0 ? (
-              <span className="text-[11px] text-zinc-400">まず手牌を選んでください</span>
-            ) : (
+
+            {/* 手牌モードなら手牌から選択、写真モードなら全牌から選択 */}
+            {postMode === 'tiles' && hand.length > 0 ? (
               <div className="flex flex-wrap gap-1.5 items-center">
                 {Array.from(new Set(hand)).map((tileId) => {
                   const isSelected = bestDiscard === tileId;
@@ -907,6 +994,40 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
                     </button>
                   );
                 })}
+              </div>
+            ) : (
+              <div className="space-y-1.5">
+                <span className="text-[11px] text-zinc-500 block">
+                  切るべき牌を1枚タップして指定してください:
+                </span>
+                <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto p-1.5 bg-white dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700">
+                  {ALL_TILES.map((tileId) => {
+                    const isSelected = bestDiscard === tileId;
+                    const display = getTileDisplay(tileId);
+                    return (
+                      <button
+                        key={`sel-photo-${tileId}`}
+                        type="button"
+                        onClick={() => setBestDiscard(tileId)}
+                        className={`px-2 py-1 rounded text-[11px] font-bold border transition-all cursor-pointer ${
+                          isSelected
+                            ? 'bg-blue-600 text-white border-blue-600'
+                            : 'bg-zinc-50 dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 border-zinc-200 dark:border-zinc-700 hover:border-blue-400'
+                        }`}
+                      >
+                        <span className={display.suitColor}>{display.topText}</span>
+                        <span>{display.bottomText}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                {bestDiscard && (
+                  <div className="flex items-center gap-1.5 text-xs text-blue-600 font-bold">
+                    <span>選択中:</span>
+                    <MahjongTile tileId={bestDiscard} size="xs" disabled />
+                    <span>{getTileDisplay(bestDiscard).topText}{getTileDisplay(bestDiscard).bottomText}</span>
+                  </div>
+                )}
               </div>
             )}
 
