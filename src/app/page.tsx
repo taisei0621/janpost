@@ -5,39 +5,47 @@ import { Problem, ProblemLevel } from '../types/mahjong';
 import { INITIAL_PROBLEMS } from '../data/initialProblems';
 import { ProblemCard } from '../components/ProblemCard';
 import { PostProblemModal } from '../components/PostProblemModal';
+import { getProblems, createProblem, submitVote } from '../utils/problemService';
+import { isSupabaseConfigured } from '../utils/supabaseClient';
 
 export default function Home() {
   const [problems, setProblems] = useState<Problem[]>(INITIAL_PROBLEMS);
   const [selectedFilter, setSelectedFilter] = useState<'all' | ProblemLevel | 'user'>('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // ローカルストレージからユーザー投稿や投票データをロード
-  useEffect(() => {
+  // Supabase (またはローカル) から問題一覧をロード
+  const loadData = async () => {
+    setIsLoading(true);
     try {
-      const savedProblems = localStorage.getItem('janpost_problems');
-      if (savedProblems) {
-        setProblems(JSON.parse(savedProblems));
+      const data = await getProblems();
+      if (data && data.length > 0) {
+        setProblems(data);
       }
     } catch (e) {
-      console.error('Failed to load problems from localStorage', e);
-    }
-  }, []);
-
-  // 新規問題の追加
-  const handleAddProblem = (newProblem: Problem) => {
-    const updated = [newProblem, ...problems];
-    setProblems(updated);
-    try {
-      localStorage.setItem('janpost_problems', JSON.stringify(updated));
-    } catch (e) {
-      console.error('Failed to save problems to localStorage', e);
+      console.error('Failed to load problems:', e);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  // 投票集計の保存
-  const handleVote = (problemId: string, tileId: string) => {
-    setProblems((prev) => {
-      const updated = prev.map((p) => {
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  // 新規問題の追加
+  const handleAddProblem = async (newProblem: Problem) => {
+    // 画面に即座に反映（楽観的UI更新）
+    setProblems((prev) => [newProblem, ...prev]);
+    // Supabase に非同期で保存
+    await createProblem(newProblem);
+  };
+
+  // 投票集計
+  const handleVote = async (problemId: string, tileId: string) => {
+    // 画面の集計を即座に+1
+    setProblems((prev) =>
+      prev.map((p) => {
         if (p.id === problemId) {
           return {
             ...p,
@@ -48,14 +56,10 @@ export default function Home() {
           };
         }
         return p;
-      });
-      try {
-        localStorage.setItem('janpost_problems', JSON.stringify(updated));
-      } catch (e) {
-        console.error('Failed to save votes to localStorage', e);
-      }
-      return updated;
-    });
+      })
+    );
+    // Supabase に非同期で投票を記録
+    await submitVote(problemId, tileId);
   };
 
   // フィルタリング処理
@@ -74,7 +78,10 @@ export default function Home() {
             <span className="text-2xl select-none">🀄</span>
             <div>
               <h1 className="text-lg sm:text-xl font-black tracking-tight flex items-center gap-1.5">
-                雀ポスト <span className="text-xs font-mono font-normal text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 px-2 py-0.5 rounded-full border border-blue-200 dark:border-blue-800">JanPost</span>
+                雀ポスト{' '}
+                <span className="text-xs font-mono font-normal text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 px-2 py-0.5 rounded-full border border-blue-200 dark:border-blue-800">
+                  JanPost
+                </span>
               </h1>
               <p className="text-[10px] text-zinc-500 hidden sm:block">
                 何切る問題を投稿・回答して雀士の集合知を集めるプラットフォーム
@@ -82,14 +89,22 @@ export default function Home() {
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-xs sm:text-sm font-bold px-4 py-2 rounded-full shadow-md transition-all cursor-pointer"
-          >
-            <span>+</span>
-            <span>問題を投稿する</span>
-          </button>
+          <div className="flex items-center gap-2">
+            {isSupabaseConfigured && (
+              <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/60 px-2.5 py-1 rounded-full border border-emerald-200 dark:border-emerald-800">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                クラウドDB接続中
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={() => setIsModalOpen(true)}
+              className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-xs sm:text-sm font-bold px-4 py-2 rounded-full shadow-md transition-all cursor-pointer"
+            >
+              <span>+</span>
+              <span>問題を投稿する</span>
+            </button>
+          </div>
         </div>
       </header>
 
@@ -168,14 +183,19 @@ export default function Home() {
 
         {/* 問題一覧 */}
         <div className="flex flex-col items-center">
-          {filteredProblems.length === 0 ? (
+          {isLoading ? (
+            <div className="text-center py-16 space-y-3">
+              <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto" />
+              <p className="text-xs text-zinc-500">クラウドデータベースから問題を読み込み中...</p>
+            </div>
+          ) : filteredProblems.length === 0 ? (
             <div className="text-center py-16 text-zinc-400 space-y-3">
               <span className="text-4xl">🀆</span>
               <p className="text-sm">該当する問題がまだありません。</p>
               <button
                 type="button"
                 onClick={() => setIsModalOpen(true)}
-                className="text-xs text-blue-600 dark:text-blue-400 underline font-bold"
+                className="text-xs text-blue-600 dark:text-blue-400 underline font-bold cursor-pointer"
               >
                 あなたが最初の問題を投稿してみませんか？
               </button>
