@@ -39,8 +39,13 @@ export const MahjongRiver: React.FC<MahjongRiverProps> = ({
             <span>🀄</span>
             <span>{windLabel}の河（捨て牌: {discards.length}枚）</span>
             {isReach && (
-              <span className="bg-red-600 text-white text-[9px] px-1.5 py-0.2 rounded font-bold">
-                立直中
+              <span className="inline-flex items-center gap-1 bg-red-600/90 text-white text-[9px] px-2 py-0.5 rounded-full font-bold shadow-xs">
+                <img
+                  src="/pai-images/tennbou-001.png"
+                  alt="リーチ棒"
+                  className="h-3 w-auto rotate-90"
+                />
+                <span>立直中 (1000点供託)</span>
               </span>
             )}
           </span>
@@ -123,7 +128,7 @@ export const MahjongRiver: React.FC<MahjongRiverProps> = ({
                   {Array.from({ length: Math.max(0, 6 - rowTiles.length) }).map((_, slotIdx) => (
                     <div
                       key={`empty-slot-${slotIdx}`}
-                      className="w-7 h-10 border border-dashed border-emerald-800/30 rounded-xs flex items-center justify-center text-[10px] text-emerald-800/40 select-none shrink-0"
+                      className="w-[31px] h-[42px] border border-dashed border-emerald-800/30 rounded-[3px] flex items-center justify-center text-[10px] text-emerald-800/40 select-none shrink-0"
                     >
                       {rowTiles.length + slotIdx + 1}
                     </div>

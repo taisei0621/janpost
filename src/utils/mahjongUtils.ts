@@ -31,6 +31,58 @@ export function parseTileId(tileId: string): Tile {
   };
 }
 
+/**
+ * 牌IDから対応する画像ファイル名プレフィックス（man1, pin5, aka1, ji1など）を取得
+ */
+export function getTileKey(tileId: string): string {
+  if (tileId === '0p') return 'aka1'; // 赤5筒
+  if (tileId === '0s') return 'aka2'; // 赤5索
+  if (tileId === '0m') return 'aka3'; // 赤5萬
+
+  const rawVal = tileId.slice(0, -1);
+  const suit = tileId.slice(-1);
+
+  if (suit === 'm') return `man${rawVal}`;
+  if (suit === 'p') return `pin${rawVal}`;
+  if (suit === 's') return `sou${rawVal}`;
+  if (suit === 'z') {
+    // ji1:東, ji2:南, ji3:西, ji4:北, ji5:發, ji6:白, ji7:中
+    const ziMap: Record<string, string> = {
+      '1': 'ji1',
+      '2': 'ji2',
+      '3': 'ji3',
+      '4': 'ji4',
+      '5': 'ji6', // 白
+      '6': 'ji5', // 發
+      '7': 'ji7', // 中
+    };
+    return ziMap[rawVal] || 'ji1';
+  }
+  return 'man1';
+}
+
+/**
+ * 麻雀牌画像（66x90 / 32x45）の公開URLパスを返却
+ */
+export function getTileImagePath(
+  tileId: string,
+  options?: {
+    size?: 's' | 'l';
+    isReach?: boolean;
+    emb?: boolean;
+  }
+): string {
+  const key = getTileKey(tileId);
+  const size = options?.size ?? 'l';
+  const isReach = options?.isReach ?? false;
+  const emb = options?.emb ?? true;
+
+  const yokoPart = isReach ? '-yoko' : '';
+  const embPart = emb ? '-emb' : '';
+
+  return `/pai-images/${key}-66-90-${size}${yokoPart}${embPart}.png`;
+}
+
 export function getTileDisplay(tileId: string): {
   topText: string;
   bottomText: string;
