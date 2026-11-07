@@ -13,8 +13,8 @@ export const INITIAL_PROBLEMS: Problem[] = [
       score: 25000,
       note: '平たい東場の序盤。メンゼンでリーチを目指す基本手順。',
     },
-    // 手牌14枚: 1m 2m 3m, 4p 5p 6p, 2s 3s, 7s 8s, 9m, 3z(西), 1m(頭候補), ツモ: 6s
-    hand: ['1m', '2m', '3m', '4p', '5p', '6p', '2s', '3s', '7s', '8s', '9m', '3z', '1m', '6s'],
+    // 手牌14枚: 13枚理牌 [1m 1m 2m 3m 9m 4p 5p 6p 2s 3s 7s 8s 3z] + ツモ牌 [6s]
+    hand: ['1m', '1m', '2m', '3m', '9m', '4p', '5p', '6p', '2s', '3s', '7s', '8s', '3z', '6s'],
     discards: [
       {
         tileId: '3z',
@@ -36,7 +36,7 @@ export const INITIAL_PROBLEMS: Problem[] = [
       },
     ],
     explanation: '序盤の基本方針は「役に立たない字牌（オタ風）から処理する」です。9mは1〜9の端牌ですが、8mや7mを引いたときに搭子に発展する余地があります。これに対してオタ風の西は重ねても役にならず、雀頭としても弱いため、牌効率を最優先するなら西切りが鉄板の一打となります。',
-    author: '公式（日本プロ麻雀連盟監修風）',
+    author: '公式',
     createdAt: '2026-11-07',
     stats: {
       '3z': 78,
@@ -56,8 +56,8 @@ export const INITIAL_PROBLEMS: Problem[] = [
       score: 21000,
       note: '3着目。トップとの差は8000点。打点を狙いたい場面。',
     },
-    // 手牌14枚: 2m 3m 4m, 2p 3p 4p, 2s 3s, 7p 8p, 5m(ドラ), 8s 8s, ツモ: 4s
-    hand: ['2m', '3m', '4m', '2p', '3p', '4p', '2s', '3s', '7p', '8p', '5m', '8s', '8s', '4s'],
+    // 手牌14枚: 13枚理牌 [2m 3m 4m 5m 2p 3p 4p 7p 8p 2s 3s 8s 8s] + ツモ牌 [4s]
+    hand: ['2m', '3m', '4m', '5m', '2p', '3p', '4p', '7p', '8p', '2s', '3s', '8s', '8s', '4s'],
     discards: [
       {
         tileId: '7p',
@@ -99,8 +99,8 @@ export const INITIAL_PROBLEMS: Problem[] = [
       score: 26000,
       note: '東家（親）から8巡目にリーチ。自分の手牌はバラバラで打点なし。親の捨て牌: 1m, 9p, 2s, 8p, 4m, 白, 9m。',
     },
-    // 手牌14枚: 3m 5m 8m, 1p 4p 7p, 3s 6s, 2z(南), 4z(北), 7z(中), 7s 9s, ツモ: 6m
-    hand: ['3m', '5m', '8m', '1p', '4p', '7p', '3s', '6s', '2z', '4z', '7z', '7s', '9s', '6m'],
+    // 手牌14枚: 13枚理牌 [3m 5m 8m 1p 4p 7p 3s 6s 7s 9s 2z 4z 7z] + ツモ牌 [6m]
+    hand: ['3m', '5m', '8m', '1p', '4p', '7p', '3s', '6s', '7s', '9s', '2z', '4z', '7z', '6m'],
     discards: [
       {
         tileId: '4z',

@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Problem, RecommendedDiscard } from '../types/mahjong';
+import React, { useState, useMemo } from 'react';
+import { Problem } from '../types/mahjong';
 import { MahjongTile } from './MahjongTile';
-import { getTileDisplay } from '../utils/mahjongUtils';
+import { getTileDisplay, sortHandWithTsumo } from '../utils/mahjongUtils';
 
 interface ProblemCardProps {
   problem: Problem;
@@ -11,9 +11,16 @@ interface ProblemCardProps {
 }
 
 export const ProblemCard: React.FC<ProblemCardProps> = ({ problem, onVote }) => {
-  const [selectedTile, setSelectedTile] = useState<string | null>(null);
+  // 手牌13枚を自動理牌し、14枚目をツモ牌として保持
+  const sortedHand = useMemo(() => {
+    return sortHandWithTsumo(problem.hand);
+  }, [problem.hand]);
+
+  const [selectedTileIndex, setSelectedTileIndex] = useState<number | null>(null);
   const [hasAnswered, setHasAnswered] = useState(false);
   const [stats, setStats] = useState<Record<string, number>>(problem.stats);
+
+  const selectedTile = selectedTileIndex !== null ? sortedHand[selectedTileIndex] : null;
 
   const levelBadges = {
     beginner: { text: '初級編', bg: 'bg-emerald-100 text-emerald-800 border-emerald-300' },
@@ -21,13 +28,13 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({ problem, onVote }) => 
     advanced: { text: '上級編', bg: 'bg-purple-100 text-purple-800 border-purple-300' },
   };
 
-  const handleSelectTile = (tileId: string) => {
+  const handleSelectTile = (index: number) => {
     if (hasAnswered) return;
-    setSelectedTile(tileId);
+    setSelectedTileIndex(index);
   };
 
   const handleSubmit = () => {
-    if (!selectedTile || hasAnswered) return;
+    if (selectedTileIndex === null || !selectedTile || hasAnswered) return;
 
     // 投票集計の更新
     setStats((prev) => ({
@@ -43,7 +50,7 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({ problem, onVote }) => 
 
   const handleReset = () => {
     setHasAnswered(false);
-    setSelectedTile(null);
+    setSelectedTileIndex(null);
   };
 
   // 全投票数
@@ -107,31 +114,37 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({ problem, onVote }) => 
         </div>
       </div>
 
-      {/* 手牌表示エリア */}
+      {/* 手牌表示エリア (全14枚: 13枚理牌 + 1枚ツモ) */}
       <div className="p-4 sm:p-8 flex flex-col items-center">
-        <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-4 text-center">
-          {hasAnswered
-            ? '回答結果と打牌統計'
-            : '切る牌を1枚タップして「打牌を決定する」を押してください'}
-        </p>
+        <div className="flex items-center justify-between w-full mb-3 px-2">
+          <p className="text-xs sm:text-sm font-medium text-zinc-500 dark:text-zinc-400">
+            {hasAnswered
+              ? '回答結果と打牌統計'
+              : '手牌14枚（配牌13枚 ＋ ツモ1枚）から切る牌を1枚選んでください'}
+          </p>
+          <span className="text-xs font-mono text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded">
+            手牌 {sortedHand.length}枚
+          </span>
+        </div>
 
-        {/* 14枚の手牌コンテナ (横スクロール対応) */}
+        {/* 14枚の手牌コンテナ (自動理牌済み) */}
         <div className="w-full overflow-x-auto pb-4 pt-4 flex justify-center items-end">
           <div className="flex items-end flex-nowrap">
-            {problem.hand.map((tileId, index) => {
-              const isTsumo = index === problem.hand.length - 1;
-              const isSelected = selectedTile === tileId && (!hasAnswered || selectedTile === tileId);
+            {sortedHand.map((tileId, index) => {
+              const isTsumo = index === sortedHand.length - 1;
+              const isSelected = selectedTileIndex === index;
               const isBestTile = hasAnswered && bestDiscard?.tileId === tileId;
 
               return (
                 <MahjongTile
-                  key={`${tileId}-${index}`}
+                  key={`hand-${tileId}-${index}`}
                   tileId={tileId}
                   size="md"
                   isTsumo={isTsumo}
+                  showTsumoLabel={isTsumo}
                   selected={isSelected}
                   disabled={hasAnswered}
-                  onClick={() => handleSelectTile(tileId)}
+                  onClick={() => handleSelectTile(index)}
                   badge={isBestTile ? '正解' : undefined}
                 />
               );
@@ -145,17 +158,17 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({ problem, onVote }) => 
             <button
               type="button"
               onClick={handleSubmit}
-              disabled={!selectedTile}
+              disabled={selectedTileIndex === null}
               className={`
-                px-8 py-3 rounded-full font-bold text-base shadow-lg transition-all
+                px-8 py-3 rounded-full font-bold text-sm sm:text-base shadow-lg transition-all
                 ${
-                  selectedTile
+                  selectedTileIndex !== null && selectedTile
                     ? 'bg-blue-600 hover:bg-blue-700 text-white cursor-pointer hover:scale-105 active:scale-95'
                     : 'bg-zinc-200 text-zinc-400 dark:bg-zinc-800 dark:text-zinc-600 cursor-not-allowed'
                 }
               `}
             >
-              {selectedTile
+              {selectedTileIndex !== null && selectedTile
                 ? `【${getTileDisplay(selectedTile).topText}${getTileDisplay(selectedTile).bottomText}】を切る！`
                 : '牌を選んでください'}
             </button>
@@ -210,7 +223,7 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({ problem, onVote }) => 
                       <div key={tileId} className="space-y-1">
                         <div className="flex items-center justify-between text-xs font-semibold">
                           <div className="flex items-center gap-2">
-                            <MahjongTile tileId={tileId} size="sm" disabled />
+                            <MahjongTile tileId={tileId} size="xs" disabled />
                             <span className="text-zinc-800 dark:text-zinc-200">
                               {getTileDisplay(tileId).topText}
                               {getTileDisplay(tileId).bottomText}

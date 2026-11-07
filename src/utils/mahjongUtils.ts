@@ -41,7 +41,7 @@ export function getTileDisplay(tileId: string): {
 
   if (tile.suit === 'z') {
     const ziChar = ZI_NAMES[tile.value] || '?';
-    let suitColor = 'text-gray-900 dark:text-gray-900';
+    let suitColor = 'text-gray-900';
     if (tile.value === 6) suitColor = 'text-emerald-700'; // 發 (緑)
     if (tile.value === 7) suitColor = 'text-red-600';     // 中 (赤)
     if (tile.value === 5) suitColor = 'text-blue-500';    // 白 (青枠など)
@@ -77,7 +77,7 @@ export function getTileDisplay(tileId: string): {
   };
 }
 
-// 牌の並び順（理牌）
+// 牌の並び順（理牌: 萬子 → 筒子 → 索子 → 字牌）
 export function sortTiles(tileIds: string[]): string[] {
   const suitOrder: Record<Suit, number> = { m: 1, p: 2, s: 3, z: 4 };
 
@@ -88,6 +88,21 @@ export function sortTiles(tileIds: string[]): string[] {
     if (suitOrder[tA.suit] !== suitOrder[tB.suit]) {
       return suitOrder[tA.suit] - suitOrder[tB.suit];
     }
-    return tA.value - tB.value;
+    if (tA.value !== tB.value) {
+      return tA.value - tB.value;
+    }
+    // 赤ドラの順序
+    return (tA.isRed ? 0 : 1) - (tB.isRed ? 0 : 1);
   });
+}
+
+// 手牌の理牌：14枚の場合は最初の13枚を理牌し、最後の1枚をツモ牌として保持する
+export function sortHandWithTsumo(hand: string[]): string[] {
+  if (hand.length <= 1) return [...hand];
+  if (hand.length === 14) {
+    const mainHand = hand.slice(0, 13);
+    const tsumo = hand[13];
+    return [...sortTiles(mainHand), tsumo];
+  }
+  return sortTiles(hand);
 }
