@@ -332,27 +332,24 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
           <button
             type="button"
             onClick={() => setPostMode('tiles')}
-            className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+            className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition-colors cursor-pointer flex items-center justify-center gap-1.5 ${
               postMode === 'tiles'
-                ? 'bg-white dark:bg-zinc-900 text-blue-600 dark:text-blue-400 shadow-xs'
+                ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-xs'
                 : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900'
             }`}
           >
-            <span>🀄</span>
-            <span>牌パレットで手牌を作成</span>
+            <span>牌パレット入力</span>
           </button>
           <button
             type="button"
             onClick={() => setPostMode('photo')}
-            className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+            className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition-colors cursor-pointer flex items-center justify-center gap-1.5 ${
               postMode === 'photo'
-                ? 'bg-white dark:bg-zinc-900 text-blue-600 dark:text-blue-400 shadow-xs'
+                ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-xs'
                 : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900'
             }`}
           >
-            <span>📸</span>
-            <span>写真・スクショで即投稿</span>
-            <span className="text-[10px] px-1.5 py-0.2 bg-amber-500 text-white rounded-full">手軽！</span>
+            <span>写真・スクショ投稿</span>
           </button>
         </div>
 
@@ -431,9 +428,9 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
                 onChange={(e) => setLevel(e.target.value as ProblemLevel)}
                 className="w-full text-xs p-2 rounded-lg border border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 focus:ring-1 focus:ring-blue-500"
               >
-                <option value="beginner">🌱 初級（基本牌効率）</option>
-                <option value="intermediate">⚔️ 中級（手役・点差）</option>
-                <option value="advanced">👑 上級（押し引き・ベタオリ）</option>
+                <option value="beginner">初級（基本牌効率）</option>
+                <option value="intermediate">中級（手役・点差）</option>
+                <option value="advanced">上級（押し引き・状況判断）</option>
               </select>
             </div>
           </div>

@@ -175,9 +175,8 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({ problem, onVote }) => 
               {levelBadges[problem.level].text}
             </span>
             {problem.imageUrl && (
-              <span className="bg-purple-100 text-purple-800 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-300 dark:border-purple-800 text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
-                <span>📸</span>
-                <span>写真投稿</span>
+              <span className="bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 text-[11px] px-2 py-0.5 rounded font-medium">
+                写真あり
               </span>
             )}
             <span className="text-xs text-zinc-500 dark:text-zinc-400">
@@ -259,36 +258,36 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({ problem, onVote }) => 
 
           {/* 捨て牌・他家状況テキスト */}
           {problem.context.discardsInfo && (
-            <div className="flex items-start gap-1.5 text-xs bg-amber-50/70 dark:bg-amber-950/30 text-amber-900 dark:text-amber-300 p-2 sm:p-2.5 rounded-lg border border-amber-200 dark:border-amber-900/50">
-              <span className="font-bold shrink-0">🀁 捨て牌・他家:</span>
+            <div className="flex items-start gap-1.5 text-xs bg-zinc-50 dark:bg-zinc-800/60 text-zinc-700 dark:text-zinc-300 p-2.5 rounded-lg border border-zinc-200 dark:border-zinc-700">
+              <span className="font-semibold text-zinc-900 dark:text-zinc-100 shrink-0">状況:</span>
               <span className="whitespace-pre-line leading-relaxed">{problem.context.discardsInfo}</span>
             </div>
           )}
 
           {/* 補足メモ */}
           {problem.context.note && !problem.context.discardsInfo && (
-            <div className="text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-2.5 py-1.5 rounded-lg border border-amber-200 dark:border-amber-900/50">
-              ⚠️ {problem.context.note}
+            <div className="text-xs text-zinc-700 dark:text-zinc-300 bg-zinc-50 dark:bg-zinc-800/60 p-2 rounded-lg border border-zinc-200 dark:border-zinc-700">
+              {problem.context.note}
             </div>
           )}
 
-          {/* ★ 全員の河（真上からの卓俯瞰ビュー）ビューワー */}
+          {/* 全員の河（真上からの卓俯瞰ビュー）ビューワー */}
           {hasDetailedBoard && (
-            <div className="pt-1.5">
+            <div className="pt-1">
               <button
                 type="button"
                 onClick={() => setShowRiverViewer(!showRiverViewer)}
-                className="w-full py-2 px-3.5 bg-gradient-to-r from-emerald-900/90 via-emerald-800 to-emerald-900 hover:from-emerald-800 hover:to-emerald-800 text-white rounded-xl text-xs sm:text-sm font-bold flex items-center justify-between transition-all shadow-md cursor-pointer border border-emerald-600/50"
+                className="w-full py-2 px-3 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-750 text-zinc-800 dark:text-zinc-200 rounded-lg text-xs font-semibold flex items-center justify-between transition-colors border border-zinc-200 dark:border-zinc-700 cursor-pointer"
               >
                 <span className="flex items-center gap-2">
-                  <span className="text-base">🀄</span>
-                  <span>対局盤面（真上から見る全員分の河・ツモ切り・鳴き状況）</span>
-                  <span className="text-[10px] bg-emerald-700/80 text-emerald-100 px-2 py-0.5 rounded-full font-mono">
-                    4家フル対応
-                  </span>
+                  <svg className="w-3.5 h-3.5 text-zinc-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="3" y="3" width="18" height="18" rx="2" />
+                    <path d="M3 9h18M9 21V9" />
+                  </svg>
+                  <span>対局盤面（各家の河・点数状況）</span>
                 </span>
-                <span className="text-xs bg-white/20 hover:bg-white/30 text-white px-2 py-0.5 rounded font-bold">
-                  {showRiverViewer ? '▲ 盤面を閉じる' : '▼ 卓全体を俯瞰する'}
+                <span className="text-xs text-zinc-500 font-medium">
+                  {showRiverViewer ? '閉じる' : '開く'}
                 </span>
               </button>
 
@@ -317,8 +316,12 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({ problem, onVote }) => 
                 alt="問題の対局写真"
                 className="max-h-72 sm:max-h-96 w-auto object-contain mx-auto transition-transform group-hover:scale-101"
               />
-              <div className="absolute bottom-2 right-2 bg-black/70 hover:bg-black text-white text-[10px] font-bold px-2 py-1 rounded-md flex items-center gap-1">
-                <span>🔍 タップで拡大</span>
+              <div className="absolute bottom-2 right-2 bg-black/75 text-white text-[11px] font-medium px-2.5 py-1 rounded-md flex items-center gap-1.5 shadow-sm">
+                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="11" cy="11" r="8" />
+                  <path d="m21 21-4.3-4.3" />
+                </svg>
+                <span>拡大表示</span>
               </div>
             </div>
           </div>
@@ -547,22 +550,21 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({ problem, onVote }) => 
 
             {/* 詳細解説 */}
             <div className="bg-white dark:bg-zinc-900 p-5 rounded-xl border border-zinc-200 dark:border-zinc-800 space-y-2">
-              <h4 className="font-bold text-sm text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
-                💡 公式戦術解説
+              <h4 className="font-bold text-sm text-zinc-900 dark:text-zinc-100">
+                解説
               </h4>
               <p className="text-sm leading-relaxed text-zinc-700 dark:text-zinc-300 whitespace-pre-line">
                 {problem.explanation}
               </p>
             </div>
 
-            {/* 💬 雀士たちの打牌理由・考察一覧（集合知セクション） */}
-            <div className="bg-zinc-50 dark:bg-zinc-800/50 p-4 sm:p-5 rounded-xl border border-zinc-200 dark:border-zinc-700/80 space-y-3">
+            {/* 雀士たちの打牌理由・考察一覧 */}
+            <div className="bg-zinc-50 dark:bg-zinc-850 p-4 sm:p-5 rounded-xl border border-zinc-200 dark:border-zinc-800 space-y-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <h4 className="font-bold text-sm text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
-                  <span>💬</span>
-                  <span>雀士たちの打牌理由・考察</span>
+                  <span>打牌理由・考察</span>
                   <span className="text-xs font-mono font-normal text-zinc-500 bg-zinc-200 dark:bg-zinc-700 px-2 py-0.5 rounded-full">
-                    {comments.length}件
+                    {comments.length}
                   </span>
                 </h4>
               </div>

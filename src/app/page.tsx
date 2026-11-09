@@ -86,66 +86,64 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-zinc-100 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-sans">
       {/* ナビゲーションバー */}
-      <header className="sticky top-0 z-40 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md border-b border-zinc-200 dark:border-zinc-800">
-        <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <span className="text-2xl select-none">🀁</span>
+      <header className="sticky top-0 z-40 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-sm border-b border-zinc-200 dark:border-zinc-800">
+        <div className="max-w-5xl mx-auto px-4 h-15 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <span className="w-7 h-7 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-lg flex items-center justify-center font-black text-sm select-none">
+              雀
+            </span>
             <div>
-              <h1 className="text-lg sm:text-xl font-black tracking-tight flex items-center gap-1.5">
-                雀ポスト{' '}
-                <span className="text-xs font-mono font-normal text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 px-2 py-0.5 rounded-full border border-blue-200 dark:border-blue-800">
+              <h1 className="text-base sm:text-lg font-black tracking-tight text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
+                雀ポスト
+                <span className="text-[11px] font-mono font-medium text-zinc-500 dark:text-zinc-400">
                   JanPost
                 </span>
               </h1>
-              <p className="text-[10px] text-zinc-500 hidden sm:block">
-                何切る問題を投稿・回答して雀士の集合知を集めるプラットフォーム
-              </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5 sm:gap-2">
+          <div className="flex items-center gap-2">
             {isSupabaseConfigured && (
-              <span className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/60 px-2 sm:px-2.5 py-1 rounded-full border border-emerald-200 dark:border-emerald-800 shrink-0">
+              <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-700 bg-emerald-50 dark:bg-emerald-950/60 dark:text-emerald-400 px-2.5 py-1 rounded-md border border-emerald-200 dark:border-emerald-850">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="hidden sm:inline">クラウドDB接続中</span>
-                <span className="inline sm:hidden">クラウドDB</span>
+                <span>クラウド同期中</span>
               </span>
             )}
             <button
               type="button"
               onClick={() => setIsModalOpen(true)}
-              className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-xs sm:text-sm font-bold px-3 sm:px-4 py-2 rounded-full shadow-md transition-all cursor-pointer"
+              className="flex items-center gap-1 bg-zinc-900 hover:bg-zinc-800 active:scale-98 text-white dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100 text-xs font-semibold px-3.5 py-1.5 rounded-md shadow-sm transition-all cursor-pointer"
             >
               <span>+</span>
-              <span>問題を投稿する</span>
+              <span>問題を作成</span>
             </button>
           </div>
         </div>
       </header>
 
       {/* ヒーローセクション */}
-      <section className="bg-gradient-to-b from-blue-50/50 via-white to-zinc-100 dark:from-zinc-900 dark:via-zinc-900 dark:to-zinc-950 py-10 px-4 border-b border-zinc-200/60 dark:border-zinc-800">
-        <div className="max-w-4xl mx-auto text-center space-y-3">
-          <h2 className="text-2xl sm:text-4xl font-black text-zinc-900 dark:text-zinc-50 tracking-tight">
+      <section className="bg-white dark:bg-zinc-900 py-8 px-4 border-b border-zinc-200 dark:border-zinc-800">
+        <div className="max-w-3xl mx-auto text-center space-y-2">
+          <h2 className="text-xl sm:text-3xl font-black text-zinc-900 dark:text-zinc-50 tracking-tight">
             迷った一打を問う。雀士の統計で解く。
           </h2>
-          <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 max-w-xl mx-auto leading-relaxed">
-            手牌14枚から1タップで直感的に打牌を選択。回答するとリアルタイムに全員の選択割合・打牌理由・戦術解説が表示されます。初級から上級までステップアップして実力を磨きましょう。
+          <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 max-w-lg mx-auto leading-relaxed">
+            手牌14枚から打牌を選択し、全国の雀士の選択割合・打牌理由・戦術解説を確認できます。
           </p>
         </div>
       </section>
 
       {/* メインコンテンツ */}
-      <main className="max-w-4xl mx-auto px-4 py-8">
+      <main className="max-w-4xl mx-auto px-4 py-6">
         {/* レベル切り替えタブ */}
-        <div className="flex flex-wrap items-center justify-center gap-2 mb-8">
+        <div className="flex flex-wrap items-center justify-center gap-1.5 mb-6">
           <button
             type="button"
             onClick={() => setSelectedFilter('all')}
-            className={`px-4 py-2 rounded-full text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors cursor-pointer ${
               selectedFilter === 'all'
-                ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow'
-                : 'bg-white text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50'
+                ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900'
+                : 'bg-white text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50'
             }`}
           >
             すべて ({problems.length})
@@ -153,46 +151,46 @@ export default function Home() {
           <button
             type="button"
             onClick={() => setSelectedFilter('beginner')}
-            className={`px-4 py-2 rounded-full text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors cursor-pointer ${
               selectedFilter === 'beginner'
-                ? 'bg-emerald-600 text-white shadow'
-                : 'bg-white text-emerald-700 dark:bg-zinc-800 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-50'
+                ? 'bg-emerald-700 text-white'
+                : 'bg-white text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50'
             }`}
           >
-            🌱 初級編（基本の受け入れ）
+            初級（基本の受け入れ）
           </button>
           <button
             type="button"
             onClick={() => setSelectedFilter('intermediate')}
-            className={`px-4 py-2 rounded-full text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors cursor-pointer ${
               selectedFilter === 'intermediate'
-                ? 'bg-blue-600 text-white shadow'
-                : 'bg-white text-blue-700 dark:bg-zinc-800 dark:text-blue-400 border border-blue-200 dark:border-blue-800 hover:bg-blue-50'
+                ? 'bg-blue-700 text-white'
+                : 'bg-white text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50'
             }`}
           >
-            ⚔️ 中級編（打点とスピード）
+            中級（打点とスピード）
           </button>
           <button
             type="button"
             onClick={() => setSelectedFilter('advanced')}
-            className={`px-4 py-2 rounded-full text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors cursor-pointer ${
               selectedFilter === 'advanced'
-                ? 'bg-purple-600 text-white shadow'
-                : 'bg-white text-purple-700 dark:bg-zinc-800 dark:text-purple-400 border border-purple-200 dark:border-purple-800 hover:bg-purple-50'
+                ? 'bg-purple-700 text-white'
+                : 'bg-white text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50'
             }`}
           >
-            👑 上級編（押し引きとベタオリ）
+            上級（押し引きと状況判断）
           </button>
           <button
             type="button"
             onClick={() => setSelectedFilter('user')}
-            className={`px-4 py-2 rounded-full text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors cursor-pointer ${
               selectedFilter === 'user'
-                ? 'bg-amber-600 text-white shadow'
-                : 'bg-white text-amber-700 dark:bg-zinc-800 dark:text-amber-400 border border-amber-200 dark:border-amber-800 hover:bg-amber-50'
+                ? 'bg-amber-700 text-white'
+                : 'bg-white text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50'
             }`}
           >
-            👥 ユーザー投稿問題
+            ユーザー投稿
           </button>
         </div>
 
