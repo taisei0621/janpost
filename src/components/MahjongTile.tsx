@@ -62,27 +62,27 @@ export const MahjongTile: React.FC<MahjongTileProps> = ({
 
   return (
     <div
-      className={`relative inline-flex items-center justify-center select-none transition-transform ${
+      className={`relative inline-flex items-center justify-center select-none transition-transform pt-3 ${
         isTsumo ? 'ml-2 sm:ml-4' : ''
       }`}
     >
-      {/* バッジ表示（残り枚数など） */}
+      {/* バッジ表示（正解・残り枚数など） */}
       {badge && (
-        <span className="absolute -top-3 left-1/2 -translate-x-1/2 z-20 whitespace-nowrap px-1 py-0.2 text-[9px] font-bold rounded bg-amber-500 text-white shadow-md animate-bounce">
+        <span className="absolute top-0 left-1/2 -translate-x-1/2 z-20 whitespace-nowrap px-1.5 py-0.5 text-[9px] font-black rounded-full bg-amber-500 text-white shadow-md animate-bounce ring-1 ring-white/80 pointer-events-none">
           {badge}
         </span>
       )}
 
-      {/* ツモラベル */}
+      {/* ツモラベル（見切れ防止でトップ余白内に確実に配置） */}
       {showTsumoLabel && isTsumo && (
-        <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 z-20 whitespace-nowrap px-1 py-0.2 text-[8px] font-bold rounded bg-blue-600 text-white shadow-xs">
+        <span className="absolute top-0 left-1/2 -translate-x-1/2 z-20 whitespace-nowrap px-1.5 py-0.2 text-[9px] font-black rounded-full bg-blue-600 text-white shadow-sm ring-1 ring-white/80 pointer-events-none tracking-wider">
           ツモ
         </span>
       )}
 
       {/* リーチ宣言ラベル */}
       {isReach && (
-        <span className="absolute -top-3 left-1/2 -translate-x-1/2 z-20 whitespace-nowrap px-1 text-[7px] font-bold rounded bg-red-600 text-white shadow-xs">
+        <span className="absolute top-0.5 left-1/2 -translate-x-1/2 z-20 whitespace-nowrap px-1 text-[7px] font-bold rounded bg-red-600 text-white shadow-xs pointer-events-none">
           立直
         </span>
       )}

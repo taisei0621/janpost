@@ -800,7 +800,7 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
                   </div>
                 </div>
 
-                <div className="min-h-14 p-2.5 bg-zinc-100 dark:bg-zinc-800 rounded-xl flex items-center justify-start gap-1 overflow-x-auto border-2 border-dashed border-zinc-300 dark:border-zinc-700">
+                <div className="min-h-16 pt-4 pb-2.5 px-3 bg-zinc-100 dark:bg-zinc-800 rounded-xl flex items-center justify-start gap-1 overflow-x-auto border-2 border-dashed border-zinc-300 dark:border-zinc-700">
                   {hand.length === 0 ? (
                     <span className="text-xs text-zinc-400 mx-auto py-2">
                       下のパレットから牌をタップして14枚選んでください（ドラ含め同牌4枚まで）

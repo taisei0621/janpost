@@ -4,6 +4,7 @@ import React, { useState, useMemo } from 'react';
 import { Problem, VoteComment, DiscardTile, PlayerSituation } from '../types/mahjong';
 import { MahjongTile } from './MahjongTile';
 import { MahjongRiver } from './MahjongRiver';
+import { MahjongTableView } from './MahjongTableView';
 import { getTileDisplay, sortHandWithTsumo } from '../utils/mahjongUtils';
 
 interface ProblemCardProps {
@@ -40,7 +41,6 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({ problem, onVote }) => 
 
   // 対局盤面ビューワー（各家の河・鳴き）
   const [showRiverViewer, setShowRiverViewer] = useState(false);
-  const [selectedRiverWind, setSelectedRiverWind] = useState<'東家' | '南家' | '西家' | '北家'>('東家');
 
   // 写真モードか手牌モードかの判定
   const isPhotoMode = Boolean(problem.imageUrl && (!problem.hand || problem.hand.length === 0));
@@ -272,74 +272,30 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({ problem, onVote }) => 
             </div>
           )}
 
-          {/* ★ 各家の河（6枚切り×3段）＆鳴き状況ビューワー */}
+          {/* ★ 全員の河（真上からの卓俯瞰ビュー）ビューワー */}
           {hasDetailedBoard && (
-            <div className="pt-1">
+            <div className="pt-1.5">
               <button
                 type="button"
                 onClick={() => setShowRiverViewer(!showRiverViewer)}
-                className="w-full py-1.5 px-3 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700/80 rounded-lg text-xs font-bold text-zinc-700 dark:text-zinc-200 flex items-center justify-between transition-colors cursor-pointer"
+                className="w-full py-2 px-3.5 bg-gradient-to-r from-emerald-900/90 via-emerald-800 to-emerald-900 hover:from-emerald-800 hover:to-emerald-800 text-white rounded-xl text-xs sm:text-sm font-bold flex items-center justify-between transition-all shadow-md cursor-pointer border border-emerald-600/50"
               >
-                <span className="flex items-center gap-1.5">
-                  <span>🀄</span>
-                  <span>対局盤面（各家の6枚×3段の河・ツモ切り・鳴き状況）を確認</span>
+                <span className="flex items-center gap-2">
+                  <span className="text-base">🀄</span>
+                  <span>対局盤面（真上から見る全員分の河・ツモ切り・鳴き状況）</span>
+                  <span className="text-[10px] bg-emerald-700/80 text-emerald-100 px-2 py-0.5 rounded-full font-mono">
+                    4家フル対応
+                  </span>
                 </span>
-                <span className="text-[11px] text-blue-600 dark:text-blue-400">
-                  {showRiverViewer ? '▲ 閉じる' : '▼ 盤面を展開'}
+                <span className="text-xs bg-white/20 hover:bg-white/30 text-white px-2 py-0.5 rounded font-bold">
+                  {showRiverViewer ? '▲ 盤面を閉じる' : '▼ 卓全体を俯瞰する'}
                 </span>
               </button>
 
               {/* 盤面展開エリア */}
-              {showRiverViewer && players && (
-                <div className="mt-2 p-3 bg-zinc-100/90 dark:bg-zinc-800/90 rounded-xl border border-zinc-200 dark:border-zinc-700 space-y-3 animate-fade-in">
-                  <div className="flex items-center justify-between border-b border-zinc-200 dark:border-zinc-700 pb-1.5">
-                    <span className="text-xs font-bold text-zinc-700 dark:text-zinc-300">
-                      各家の河（6枚切り×3段：薄暗い牌 = ツモ切り / 通常 = 手出し）
-                    </span>
-                    <div className="flex gap-1">
-                      {WINDS.map((w) => (
-                        <button
-                          key={`view-tab-${w}`}
-                          type="button"
-                          onClick={() => setSelectedRiverWind(w)}
-                          className={`px-2.5 py-0.5 rounded text-[11px] font-bold transition-all cursor-pointer ${
-                            selectedRiverWind === w
-                              ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900'
-                              : 'bg-white dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300'
-                          }`}
-                        >
-                          {w}
-                          {players[w]?.isReach && <span className="ml-1 text-[9px] text-red-500 font-bold">立直</span>}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* 選択された家の本物の河コンポーネント */}
-                  {players[selectedRiverWind] && (
-                    <div className="space-y-2">
-                      {players[selectedRiverWind].melds && players[selectedRiverWind].melds.length > 0 && (
-                        <div className="flex items-center gap-1.5 text-xs bg-amber-50 dark:bg-amber-950/40 p-2 rounded-lg border border-amber-200 dark:border-amber-900">
-                          <span className="text-zinc-600 dark:text-zinc-400 font-bold text-[11px]">副露（鳴き）:</span>
-                          {players[selectedRiverWind].melds.map((m, mIdx) => (
-                            <span
-                              key={`m-${mIdx}`}
-                              className="bg-amber-100 dark:bg-amber-950 text-amber-900 dark:text-amber-200 px-2 py-0.5 rounded text-xs font-bold border border-amber-300"
-                            >
-                              {m}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-
-                      <MahjongRiver
-                        discards={players[selectedRiverWind].discards}
-                        windLabel={selectedRiverWind}
-                        isReach={players[selectedRiverWind].isReach}
-                        interactive={false}
-                      />
-                    </div>
-                  )}
+              {showRiverViewer && (
+                <div className="mt-2 animate-fade-in">
+                  <MahjongTableView problem={problem} />
                 </div>
               )}
             </div>
@@ -382,7 +338,7 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({ problem, onVote }) => 
               </span>
             </div>
 
-            <div className="w-full overflow-x-auto pb-4 pt-2 flex justify-center items-end">
+            <div className="w-full overflow-x-auto pb-4 pt-4 px-2 flex justify-center items-end">
               <div className="flex items-end flex-nowrap">
                 {sortedHand.map((tileId, index) => {
                   const isTsumo = index === sortedHand.length - 1;
