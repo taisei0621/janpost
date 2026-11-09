@@ -63,5 +63,6 @@ export interface Problem {
   author: string;
   createdAt: string;
   stats: Record<string, number>; // 各TileIdの投票数
+  likes?: number; // いいね数
   comments?: VoteComment[]; // 回答者の打牌理由一覧
 }

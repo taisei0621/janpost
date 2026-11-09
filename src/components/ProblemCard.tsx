@@ -6,10 +6,17 @@ import { MahjongTile } from './MahjongTile';
 import { MahjongRiver } from './MahjongRiver';
 import { MahjongTableView } from './MahjongTableView';
 import { getTileDisplay, sortHandWithTsumo } from '../utils/mahjongUtils';
+import {
+  isProblemLikedByMe,
+  setProblemLikedByMe,
+  canDeleteProblemOnThisDevice,
+} from '../utils/problemService';
 
 interface ProblemCardProps {
   problem: Problem;
   onVote?: (problemId: string, tileId: string, comment?: string) => void;
+  onLike?: (problemId: string, increment: boolean) => void;
+  onDelete?: (problemId: string) => void;
 }
 
 const WINDS: Array<'東家' | '南家' | '西家' | '北家'> = ['東家', '南家', '西家', '北家'];
@@ -21,7 +28,12 @@ const SOU_TILES = ['1s', '2s', '3s', '4s', '5s', '0s', '6s', '7s', '8s', '9s'];
 const ZI_TILES = ['1z', '2z', '3z', '4z', '5z', '6z', '7z'];
 const ALL_VOTE_TILES = [...MAN_TILES, ...PIN_TILES, ...SOU_TILES, ...ZI_TILES];
 
-export const ProblemCard: React.FC<ProblemCardProps> = ({ problem, onVote }) => {
+export const ProblemCard: React.FC<ProblemCardProps> = ({
+  problem,
+  onVote,
+  onLike,
+  onDelete,
+}) => {
   // 手牌13枚を自動理牌し、14枚目をツモ牌として保持
   const sortedHand = useMemo(() => {
     return sortHandWithTsumo(problem.hand || []);
@@ -35,6 +47,30 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({ problem, onVote }) => 
   const [comments, setComments] = useState<VoteComment[]>(problem.comments || []);
   const [filterCommentTile, setFilterCommentTile] = useState<string>('all');
   const [additionalComment, setAdditionalComment] = useState('');
+
+  // いいね機能
+  const [isLiked, setIsLiked] = useState<boolean>(() => isProblemLikedByMe(problem.id));
+  const [likeCount, setLikeCount] = useState<number>(problem.likes || 0);
+  const canDelete = canDeleteProblemOnThisDevice(problem.id);
+
+  const handleToggleLike = () => {
+    const nextLiked = !isLiked;
+    setIsLiked(nextLiked);
+    const nextCount = Math.max(0, likeCount + (nextLiked ? 1 : -1));
+    setLikeCount(nextCount);
+    setProblemLikedByMe(problem.id, nextLiked);
+    if (onLike) {
+      onLike(problem.id, nextLiked);
+    }
+  };
+
+  const handleDelete = () => {
+    if (window.confirm(`この問題「${problem.title}」を削除しますか？\n（この端末でのみ実行可能・元に戻せません）`)) {
+      if (onDelete) {
+        onDelete(problem.id);
+      }
+    }
+  };
 
   // 写真拡大モーダル
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
@@ -183,7 +219,48 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({ problem, onVote }) => 
               出題: {problem.author}
             </span>
           </div>
-          <span className="text-xs text-zinc-400">{problem.createdAt}</span>
+          <div className="flex items-center gap-2">
+            {/* いいねボタン */}
+            <button
+              type="button"
+              onClick={handleToggleLike}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-colors border cursor-pointer ${
+                isLiked
+                  ? 'bg-rose-50 border-rose-200 text-rose-600 dark:bg-rose-950/40 dark:border-rose-900 dark:text-rose-400'
+                  : 'bg-white border-zinc-200 text-zinc-600 hover:bg-zinc-50 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-400'
+              }`}
+            >
+              <svg
+                className={`w-3.5 h-3.5 ${isLiked ? 'fill-current text-rose-500' : 'fill-none text-zinc-400'}`}
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                />
+              </svg>
+              <span className="font-mono">{likeCount}</span>
+            </button>
+
+            {/* この端末限定の削除ボタン */}
+            {canDelete && (
+              <button
+                type="button"
+                onClick={handleDelete}
+                title="この問題を削除（この端末でのみ実行可能）"
+                className="p-1 text-zinc-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 rounded transition-colors cursor-pointer"
+              >
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6" />
+                </svg>
+              </button>
+            )}
+
+            <span className="text-xs text-zinc-400">{problem.createdAt}</span>
+          </div>
         </div>
 
         <h3 className="text-lg sm:text-xl font-bold text-zinc-900 dark:text-zinc-100 mb-3">

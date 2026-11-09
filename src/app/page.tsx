@@ -1,18 +1,28 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Problem, ProblemLevel, VoteComment } from '../types/mahjong';
 import { INITIAL_PROBLEMS } from '../data/initialProblems';
 import { ProblemCard } from '../components/ProblemCard';
 import { PostProblemModal } from '../components/PostProblemModal';
-import { getProblems, createProblem, submitVote } from '../utils/problemService';
+import {
+  getProblems,
+  createProblem,
+  submitVote,
+  deleteProblem,
+  toggleProblemLike,
+  isDeviceAdmin,
+  setDeviceAdmin,
+} from '../utils/problemService';
 import { isSupabaseConfigured } from '../utils/supabaseClient';
 
 export default function Home() {
   const [problems, setProblems] = useState<Problem[]>(INITIAL_PROBLEMS);
   const [selectedFilter, setSelectedFilter] = useState<'all' | ProblemLevel | 'user'>('all');
+  const [sortOrder, setSortOrder] = useState<'newest' | 'popular' | 'votes'>('newest');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   // Supabase (またはローカル) から問題一覧をロード
   const loadData = async () => {
@@ -31,19 +41,39 @@ export default function Home() {
 
   useEffect(() => {
     loadData();
+    setIsAdmin(isDeviceAdmin());
   }, []);
 
   // 新規問題の追加
   const handleAddProblem = async (newProblem: Problem) => {
-    // 画面に即座に反映（楽観的UI更新）
     setProblems((prev) => [newProblem, ...prev]);
-    // Supabase に非同期で保存
     await createProblem(newProblem);
+  };
+
+  // 問題の削除（この端末限定）
+  const handleDeleteProblem = async (problemId: string) => {
+    setProblems((prev) => prev.filter((p) => p.id !== problemId));
+    await deleteProblem(problemId);
+  };
+
+  // いいねの切り替え
+  const handleToggleLike = async (problemId: string, increment: boolean) => {
+    setProblems((prev) =>
+      prev.map((p) => {
+        if (p.id === problemId) {
+          return {
+            ...p,
+            likes: Math.max(0, (p.likes || 0) + (increment ? 1 : -1)),
+          };
+        }
+        return p;
+      })
+    );
+    await toggleProblemLike(problemId, increment);
   };
 
   // 投票集計（コメント対応）
   const handleVote = async (problemId: string, tileId: string, comment?: string) => {
-    // 画面の集計を即座に+1 ＆ コメントがあれば追加
     setProblems((prev) =>
       prev.map((p) => {
         if (p.id === problemId) {
@@ -72,16 +102,41 @@ export default function Home() {
         return p;
       })
     );
-    // Supabase に非同期で投票を記録
     await submitVote(problemId, tileId, comment);
   };
 
-  // フィルタリング処理
-  const filteredProblems = problems.filter((p) => {
-    if (selectedFilter === 'all') return true;
-    if (selectedFilter === 'user') return p.author !== '公式' && !p.author.includes('公式');
-    return p.level === selectedFilter;
-  });
+  // 管理者モードの切り替え
+  const handleToggleAdmin = () => {
+    const nextState = !isAdmin;
+    setIsAdmin(nextState);
+    setDeviceAdmin(nextState);
+  };
+
+  // フィルタリング ＆ ソート（新着順・人気順・回答数順）
+  const processedProblems = useMemo(() => {
+    const filtered = problems.filter((p) => {
+      if (selectedFilter === 'all') return true;
+      if (selectedFilter === 'user') return p.author !== '公式' && !p.author.includes('公式');
+      return p.level === selectedFilter;
+    });
+
+    return [...filtered].sort((a, b) => {
+      if (sortOrder === 'popular') {
+        const diff = (b.likes || 0) - (a.likes || 0);
+        if (diff !== 0) return diff;
+        return (b.createdAt || '').localeCompare(a.createdAt || '');
+      }
+      if (sortOrder === 'votes') {
+        const countA = Object.values(a.stats || {}).reduce((s, c) => s + c, 0);
+        const countB = Object.values(b.stats || {}).reduce((s, c) => s + c, 0);
+        const diff = countB - countA;
+        if (diff !== 0) return diff;
+        return (b.createdAt || '').localeCompare(a.createdAt || '');
+      }
+      // デフォルト: 新着順
+      return (b.createdAt || '').localeCompare(a.createdAt || '');
+    });
+  }, [problems, selectedFilter, sortOrder]);
 
   return (
     <div className="min-h-screen bg-zinc-100 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-sans">
@@ -136,7 +191,7 @@ export default function Home() {
       {/* メインコンテンツ */}
       <main className="max-w-4xl mx-auto px-4 py-6">
         {/* レベル切り替えタブ */}
-        <div className="flex flex-wrap items-center justify-center gap-1.5 mb-6">
+        <div className="flex flex-wrap items-center justify-center gap-1.5 mb-4">
           <button
             type="button"
             onClick={() => setSelectedFilter('all')}
@@ -194,6 +249,52 @@ export default function Home() {
           </button>
         </div>
 
+        {/* 並び替えコントローラー */}
+        <div className="flex items-center justify-between gap-2 mb-6 px-1 text-xs">
+          <span className="text-zinc-500 font-medium">
+            {processedProblems.length}件の問題
+          </span>
+
+          <div className="flex items-center bg-zinc-200/70 dark:bg-zinc-800 p-0.5 rounded-md border border-zinc-200 dark:border-zinc-700">
+            <span className="text-[10px] text-zinc-500 dark:text-zinc-400 px-2 font-medium">
+              並び替え:
+            </span>
+            <button
+              type="button"
+              onClick={() => setSortOrder('newest')}
+              className={`px-2.5 py-1 rounded text-xs font-medium transition-colors cursor-pointer ${
+                sortOrder === 'newest'
+                  ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-xs'
+                  : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
+              }`}
+            >
+              新着順
+            </button>
+            <button
+              type="button"
+              onClick={() => setSortOrder('popular')}
+              className={`px-2.5 py-1 rounded text-xs font-medium transition-colors cursor-pointer ${
+                sortOrder === 'popular'
+                  ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-xs'
+                  : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
+              }`}
+            >
+              人気順
+            </button>
+            <button
+              type="button"
+              onClick={() => setSortOrder('votes')}
+              className={`px-2.5 py-1 rounded text-xs font-medium transition-colors cursor-pointer ${
+                sortOrder === 'votes'
+                  ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-xs'
+                  : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
+              }`}
+            >
+              回答数順
+            </button>
+          </div>
+        </div>
+
         {/* 問題一覧 */}
         <div className="space-y-8 flex flex-col items-center">
           {isLoading ? (
@@ -201,7 +302,7 @@ export default function Home() {
               <div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto" />
               <p className="text-xs text-zinc-500">クラウドデータベースから問題を読み込み中...</p>
             </div>
-          ) : filteredProblems.length === 0 ? (
+          ) : processedProblems.length === 0 ? (
             <div className="text-center py-16 text-zinc-400 space-y-3">
               <span className="text-4xl">🀆</span>
               <p className="text-sm">該当する問題がまだありません。</p>
@@ -214,11 +315,13 @@ export default function Home() {
               </button>
             </div>
           ) : (
-            filteredProblems.map((problem) => (
+            processedProblems.map((problem) => (
               <ProblemCard
                 key={problem.id}
                 problem={problem}
                 onVote={handleVote}
+                onLike={handleToggleLike}
+                onDelete={handleDeleteProblem}
               />
             ))
           )}
@@ -226,11 +329,26 @@ export default function Home() {
       </main>
 
       {/* フッター */}
-      <footer className="bg-white dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800 py-8 text-center text-xs text-zinc-500 space-y-1">
+      <footer className="bg-white dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800 py-8 text-center text-xs text-zinc-500 space-y-2">
         <p className="font-bold text-zinc-700 dark:text-zinc-300">
           雀ポスト (JanPost) - 麻雀何切る投稿・投票プラットフォーム
         </p>
         <p className="text-zinc-400">© 2026 JanPost. All rights reserved.</p>
+
+        {/* この端末限定の管理モードトグル */}
+        <div className="pt-2">
+          <button
+            type="button"
+            onClick={handleToggleAdmin}
+            className={`text-[10px] px-2.5 py-1 rounded border transition-colors cursor-pointer ${
+              isAdmin
+                ? 'bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-950 dark:text-amber-200'
+                : 'text-zinc-400 border-zinc-200 dark:border-zinc-800 hover:text-zinc-600'
+            }`}
+          >
+            {isAdmin ? '● 端末管理モード有効（全問題の削除可能）' : '○ 端末管理モード無効'}
+          </button>
+        </div>
       </footer>
 
       {/* 投稿モーダル */}
