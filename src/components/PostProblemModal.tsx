@@ -195,13 +195,21 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
 
   // 鳴きを追加
   const handleAddMeld = (windKey: '東家' | '南家' | '西家' | '北家') => {
-    const promptVal = prompt('鳴いた牌を入力してください（例: 7z-7z-7z, 1m-2m-3m, 發ポン）:');
+    const promptVal = prompt('鳴いた牌を入力してください（例: 7z-7z-7z, 1m-2m-3m, 發ポン, 123p）:');
     if (promptVal && promptVal.trim()) {
       setRiverMelds((prev) => ({
         ...prev,
         [windKey]: [...prev[windKey], promptVal.trim()],
       }));
     }
+  };
+
+  // プリセットから鳴きを追加
+  const handleAddPresetMeld = (windKey: '東家' | '南家' | '西家' | '北家', meldCode: string) => {
+    setRiverMelds((prev) => ({
+      ...prev,
+      [windKey]: [...prev[windKey], meldCode],
+    }));
   };
 
   // 鳴きを削除
@@ -680,49 +688,62 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
                     {/* ★ 実際の河（6枚切り×3段）コンポーネント */}
                     <MahjongRiver
                       discards={riverDiscards[activeRiverWind]}
+                      melds={riverMelds[activeRiverWind]}
                       windLabel={activeRiverWind}
                       isReach={riverReach[activeRiverWind]}
                       interactive
                       onToggleTsumogiri={handleToggleDiscardTsumogiri}
                       onRemoveTile={handleRemoveDiscard}
                       onToggleReach={handleToggleDiscardReach}
+                      onRemoveMeld={(mIdx) => handleRemoveMeld(activeRiverWind, mIdx)}
                     />
 
                     {/* 鳴き牌（副露）設定 */}
-                    <div className="bg-zinc-50 dark:bg-zinc-800/50 p-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700/60 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-zinc-700 dark:text-zinc-300">
-                          鳴き牌（副露）:
-                        </span>
-                        {riverMelds[activeRiverWind].length === 0 ? (
-                          <span className="text-xs text-zinc-400">なし（門前）</span>
-                        ) : (
-                          <div className="flex gap-1.5">
-                            {riverMelds[activeRiverWind].map((meld, mIdx) => (
-                              <span
-                                key={`meld-${mIdx}`}
-                                className="bg-amber-100 dark:bg-amber-950/60 text-amber-900 dark:text-amber-200 text-xs px-2 py-0.5 rounded border border-amber-300 dark:border-amber-800 font-bold flex items-center gap-1"
-                              >
-                                {meld}
-                                <button
-                                  type="button"
-                                  onClick={() => handleRemoveMeld(activeRiverWind, mIdx)}
-                                  className="text-amber-700 hover:text-red-600 font-bold ml-1 cursor-pointer"
-                                >
-                                  &times;
-                                </button>
-                              </span>
-                            ))}
-                          </div>
-                        )}
+                    <div className="bg-zinc-50 dark:bg-zinc-800/50 p-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700/60 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-zinc-700 dark:text-zinc-300">
+                            鳴き牌（副露）:
+                          </span>
+                          {riverMelds[activeRiverWind].length === 0 ? (
+                            <span className="text-xs text-zinc-400">なし（門前）</span>
+                          ) : (
+                            <span className="text-xs text-amber-600 dark:text-amber-400 font-bold">
+                              {riverMelds[activeRiverWind].length}件登録中（上の河に牌画像で表示中）
+                            </span>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleAddMeld(activeRiverWind)}
+                          className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+                        >
+                          + 自由入力で追加
+                        </button>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => handleAddMeld(activeRiverWind)}
-                        className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
-                      >
-                        + 鳴きを追加
-                      </button>
+
+                      {/* クイック役牌ポン・チーボタン */}
+                      <div className="flex flex-wrap items-center gap-1.5 pt-1.5 border-t border-zinc-200 dark:border-zinc-700/50">
+                        <span className="text-[10px] text-zinc-500 font-medium">クイック追加:</span>
+                        {[
+                          { label: '中ポン', code: '7z-7z-7z' },
+                          { label: '發ポン', code: '6z-6z-6z' },
+                          { label: '白ポン', code: '5z-5z-5z' },
+                          { label: '東ポン', code: '1z-1z-1z' },
+                          { label: '南ポン', code: '2z-2z-2z' },
+                          { label: '123mチー', code: '1m-2m-3m' },
+                          { label: '789pチー', code: '7p-8p-9p' },
+                        ].map((m) => (
+                          <button
+                            key={`quick-meld-${m.label}`}
+                            type="button"
+                            onClick={() => handleAddPresetMeld(activeRiverWind, m.code)}
+                            className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 dark:hover:bg-amber-900/50 text-amber-900 dark:text-amber-200 border border-amber-300 dark:border-amber-800 transition-colors cursor-pointer"
+                          >
+                            + {m.label}
+                          </button>
+                        ))}
+                      </div>
                     </div>
 
                     {/* 河用クイック追加パレット */}

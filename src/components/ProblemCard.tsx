@@ -81,7 +81,7 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({
   const [showRiverViewer, setShowRiverViewer] = useState(false);
 
   // 写真モードか手牌モードかの判定
-  const isPhotoMode = Boolean(problem.imageUrl && (!problem.hand || problem.hand.length === 0));
+  const isPhotoMode = Boolean(problem.imageUrl || (!problem.hand || problem.hand.length === 0));
 
   // 選択中の牌
   const selectedTile = isPhotoMode

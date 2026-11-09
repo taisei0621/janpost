@@ -197,3 +197,49 @@ export function canAddTileValidation(
 
   return { canAdd: true };
 }
+
+/**
+ * 鳴き牌（副露）文字列から牌ID配列と表示ラベルを解析
+ * 例: "7z-7z-7z" -> ["7z", "7z", "7z"]
+ * 例: "1m-2m-3m" -> ["1m", "2m", "3m"]
+ * 例: "123m" -> ["1m", "2m", "3m"]
+ * 例: "中ポン" -> ["7z", "7z", "7z"], label: "中ポン"
+ */
+export function parseMeldTiles(meldStr: string): { label?: string; tileIds: string[] } {
+  if (!meldStr || typeof meldStr !== 'string') return { tileIds: [] };
+
+  const s = meldStr.trim();
+
+  // 1. 日本語役牌ポン・カンパターン
+  const kanjiMap: Record<string, string> = {
+    '東': '1z', '南': '2z', '西': '3z', '北': '4z',
+    '白': '5z', '發': '6z', '中': '7z',
+  };
+
+  for (const [char, tid] of Object.entries(kanjiMap)) {
+    if (s.includes(char)) {
+      if (s.includes('カン') || s.includes('槓')) {
+        return { label: `${char}カン`, tileIds: [tid, tid, tid, tid] };
+      }
+      return { label: s.includes('ポン') ? `${char}ポン` : `${char}`, tileIds: [tid, tid, tid] };
+    }
+  }
+
+  // 2. 連続牌パターン: 例 "123m", "234p", "789s", "777z"
+  const continuousMatch = s.match(/^([0-9]{3,4})([mpsz])$/i);
+  if (continuousMatch) {
+    const nums = continuousMatch[1];
+    const suit = continuousMatch[2].toLowerCase();
+    const tileIds = nums.split('').map((n) => `${n}${suit}`);
+    return { tileIds };
+  }
+
+  // 3. ハイフン・空白・カンマ区切りパターン: 例 "7z-7z-7z", "1m, 2m, 3m", "5p 5p 5p 0p"
+  const tileMatches = s.match(/([0-9][mpsz])/gi);
+  if (tileMatches && tileMatches.length >= 2) {
+    const tileIds = tileMatches.map((t) => t.toLowerCase());
+    return { tileIds };
+  }
+
+  return { tileIds: [] };
+}

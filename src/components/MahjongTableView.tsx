@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Problem, PlayerSituation, DiscardTile } from '../types/mahjong';
 import { MahjongTile } from './MahjongTile';
+import { parseMeldTiles } from '../utils/mahjongUtils';
 
 interface MahjongTableViewProps {
   problem: Problem;
@@ -94,10 +95,40 @@ export const MahjongTableView: React.FC<MahjongTableViewProps> = ({ problem }) =
           )}
         </div>
 
-        {/* 鳴き（副露） */}
+        {/* 鳴き牌（副露）: 実際の牌画像を表示 */}
         {p?.melds && p.melds.length > 0 && (
-          <div className="mb-1 text-[9px] sm:text-[10px] bg-amber-500/90 text-amber-950 font-semibold px-1.5 sm:px-2 py-0.5 rounded">
-            副露: {p.melds.join(' ')}
+          <div className="mb-1 flex flex-wrap items-center justify-center gap-1">
+            {p.melds.map((meldStr, mIdx) => {
+              const { label, tileIds } = parseMeldTiles(meldStr);
+              return (
+                <div
+                  key={`meld-${seat.wind}-${mIdx}`}
+                  className="inline-flex items-center gap-0.5 bg-[#124b27] px-1 py-0.5 rounded border border-amber-400/40 shadow-xs"
+                >
+                  {label && (
+                    <span className="text-[7px] sm:text-[8px] text-amber-300 font-bold px-0.5">
+                      {label}
+                    </span>
+                  )}
+                  {tileIds.length > 0 ? (
+                    <div className="flex items-center gap-0.5">
+                      {tileIds.map((tid, tIdx) => (
+                        <MahjongTile
+                          key={`mt-${seat.wind}-${mIdx}-${tIdx}`}
+                          tileId={tid}
+                          size="xs"
+                          disabled
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="text-[8px] sm:text-[9px] text-amber-200 font-semibold px-0.5">
+                      {meldStr}
+                    </span>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
 

@@ -3,25 +3,30 @@
 import React from 'react';
 import { DiscardTile } from '../types/mahjong';
 import { MahjongTile } from './MahjongTile';
+import { parseMeldTiles } from '../utils/mahjongUtils';
 
 interface MahjongRiverProps {
   discards: DiscardTile[];
+  melds?: string[];
   windLabel?: string;
   isReach?: boolean;
   interactive?: boolean; // 作成時（トグル・削除可能）
   onToggleTsumogiri?: (index: number) => void;
   onRemoveTile?: (index: number) => void;
   onToggleReach?: (index: number) => void;
+  onRemoveMeld?: (index: number) => void;
 }
 
 export const MahjongRiver: React.FC<MahjongRiverProps> = ({
   discards,
+  melds,
   windLabel,
   isReach = false,
   interactive = false,
   onToggleTsumogiri,
   onRemoveTile,
   onToggleReach,
+  onRemoveMeld,
 }) => {
   // 6枚ごとに段を分割（上段: 0-5, 中段: 6-11, 下段: 12-17, 4段目: 18-）
   const rows: DiscardTile[][] = [];
@@ -52,6 +57,53 @@ export const MahjongRiver: React.FC<MahjongRiverProps> = ({
           <span className="text-[10px] text-zinc-500 dark:text-zinc-400">
             ※薄暗い牌 = ツモ切り / 通常 = 手出し
           </span>
+        </div>
+      )}
+
+      {/* 鳴き牌（副露）の表示 */}
+      {melds && melds.length > 0 && (
+        <div className="mb-2.5 p-2 bg-emerald-950/40 rounded-lg border border-emerald-700/40 flex flex-wrap items-center gap-2">
+          <span className="text-[11px] font-bold text-amber-300 flex items-center gap-1">
+            <span>鳴き (副露):</span>
+          </span>
+          <div className="flex flex-wrap items-center gap-2">
+            {melds.map((meldStr, mIdx) => {
+              const { label, tileIds } = parseMeldTiles(meldStr);
+              return (
+                <div
+                  key={`river-meld-${mIdx}`}
+                  className="inline-flex items-center gap-1 bg-[#104323] px-2 py-1 rounded-md border border-amber-400/50 shadow-sm"
+                >
+                  {label && (
+                    <span className="text-[10px] text-amber-300 font-bold px-1">
+                      {label}
+                    </span>
+                  )}
+                  {tileIds.length > 0 ? (
+                    <div className="flex items-center gap-0.5">
+                      {tileIds.map((tid, tIdx) => (
+                        <MahjongTile key={`rm-${mIdx}-${tIdx}`} tileId={tid} size="xs" disabled />
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="text-xs text-amber-200 font-bold px-1">
+                      {meldStr}
+                    </span>
+                  )}
+                  {interactive && onRemoveMeld && (
+                    <button
+                      type="button"
+                      onClick={() => onRemoveMeld(mIdx)}
+                      title="この鳴きを削除"
+                      className="ml-1 text-amber-300 hover:text-red-400 font-bold text-xs cursor-pointer"
+                    >
+                      &times;
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 

@@ -9,6 +9,33 @@ const LOCAL_STORAGE_LIKES_KEY = 'janpost_liked_problem_ids';
 const LOCAL_STORAGE_ADMIN_TOKEN_KEY = 'janpost_admin_authenticated';
 export const ADMIN_SECRET = 'janpost777';
 
+// note カラムに imageUrl を埋め込む/復元するヘルパー
+// （Supabase の problems テーブルに image_url カラムが存在しない環境でも確実に写真が永続化されるようにします）
+export function encodeNoteWithImage(note?: string, imageUrl?: string): string | null {
+  if (!imageUrl && !note) return null;
+  if (!imageUrl) return note || null;
+  return JSON.stringify({
+    note: note || '',
+    imageUrl: imageUrl,
+  });
+}
+
+export function decodeNoteWithImage(rawNote?: string | null): { note?: string; imageUrl?: string } {
+  if (!rawNote || typeof rawNote !== 'string') return {};
+  if (rawNote.startsWith('{') && rawNote.includes('"imageUrl"')) {
+    try {
+      const parsed = JSON.parse(rawNote);
+      return {
+        note: parsed.note || undefined,
+        imageUrl: parsed.imageUrl || undefined,
+      };
+    } catch {
+      return { note: rawNote };
+    }
+  }
+  return { note: rawNote };
+}
+
 // 問題一覧の取得（Supabase ＋ 投票数集計 ＋ コメント一覧 ＋ いいね数 ＋ 削除除外）
 export async function getProblems(): Promise<Problem[]> {
   const deletedIds = getDeletedProblemIds();
@@ -83,7 +110,10 @@ export async function getProblems(): Promise<Problem[]> {
       }
     }
 
-    // 3. Problem 型に整形（削除済みIDは除外）
+    // 3. Problem 型に整形（削除済みIDは除外、ローカル画像バックアップもマージ）
+    const localProblems = getLocalProblems();
+    const localMap = new Map(localProblems.map((p) => [p.id, p]));
+
     return problemsData
       .filter((row: any) => !deletedIds.includes(row.id))
       .map((row: any) => {
@@ -92,11 +122,20 @@ export async function getProblems(): Promise<Problem[]> {
           ...(initialCommentsMap[row.id] || []),
         ];
 
+        const { note: decodedNote, imageUrl: decodedImageUrl } = decodeNoteWithImage(row.note);
+        const localProblem = localMap.get(row.id);
+        const resolvedImageUrl =
+          row.image_url ||
+          row.imageUrl ||
+          decodedImageUrl ||
+          localProblem?.imageUrl ||
+          undefined;
+
         return {
           id: row.id,
           title: row.title,
           level: row.level,
-          imageUrl: row.image_url || row.imageUrl || undefined,
+          imageUrl: resolvedImageUrl,
           context: {
             round: row.round,
             turn: row.turn,
@@ -107,7 +146,7 @@ export async function getProblems(): Promise<Problem[]> {
             players: row.players || undefined,
             scoreInfo: row.score_info || row.scoreInfo || undefined,
             discardsInfo: row.discards_info || row.discardsInfo || undefined,
-            note: row.note,
+            note: decodedNote,
           },
           hand: Array.isArray(row.hand) ? row.hand : JSON.parse(row.hand || '[]'),
           discards: Array.isArray(row.discards) ? row.discards : JSON.parse(row.discards || '[]'),
@@ -135,6 +174,8 @@ export async function createProblem(newProblem: Problem): Promise<boolean> {
   }
 
   try {
+    const encodedNote = encodeNoteWithImage(newProblem.context.note, newProblem.imageUrl);
+
     const payload: any = {
       id: newProblem.id,
       title: newProblem.title,
@@ -148,8 +189,7 @@ export async function createProblem(newProblem: Problem): Promise<boolean> {
       players: newProblem.context.players || null,
       score_info: newProblem.context.scoreInfo || null,
       discards_info: newProblem.context.discardsInfo || null,
-      image_url: newProblem.imageUrl || null,
-      note: newProblem.context.note || null,
+      note: encodedNote,
       hand: newProblem.hand,
       discards: newProblem.discards,
       explanation: newProblem.explanation,
@@ -163,10 +203,10 @@ export async function createProblem(newProblem: Problem): Promise<boolean> {
       console.warn('First insert attempt failed, trying fallback without new columns:', error);
       delete payload.score_info;
       delete payload.discards_info;
-      delete payload.image_url;
       delete payload.scores;
       delete payload.players;
       delete payload.likes;
+      // note は画像が含まれているため削除せず保持
       const { error: fallbackErr } = await supabase.from('problems').insert([payload]);
       if (fallbackErr) {
         console.error('Failed to insert problem to Supabase:', fallbackErr);
