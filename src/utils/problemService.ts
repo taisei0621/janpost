@@ -5,9 +5,9 @@ import { supabase, isSupabaseConfigured } from './supabaseClient';
 const LOCAL_STORAGE_KEY = 'janpost_problems';
 const LOCAL_STORAGE_VOTES_KEY = 'janpost_votes';
 const LOCAL_STORAGE_DELETED_KEY = 'janpost_deleted_problem_ids';
-const LOCAL_STORAGE_MY_PROBLEMS_KEY = 'janpost_my_created_problem_ids';
 const LOCAL_STORAGE_LIKES_KEY = 'janpost_liked_problem_ids';
-const LOCAL_STORAGE_ADMIN_KEY = 'janpost_device_admin_mode';
+const LOCAL_STORAGE_ADMIN_TOKEN_KEY = 'janpost_admin_authenticated';
+export const ADMIN_SECRET = 'janpost777';
 
 // 問題一覧の取得（Supabase ＋ 投票数集計 ＋ コメント一覧 ＋ いいね数 ＋ 削除除外）
 export async function getProblems(): Promise<Problem[]> {
@@ -127,9 +127,6 @@ export async function getProblems(): Promise<Problem[]> {
 
 // 新規問題の作成・保存
 export async function createProblem(newProblem: Problem): Promise<boolean> {
-  // この端末で作成された問題としてIDを記録
-  recordMyCreatedProblem(newProblem.id);
-
   // ローカルに即座にバックアップ
   saveLocalProblem(newProblem);
 
@@ -183,8 +180,14 @@ export async function createProblem(newProblem: Problem): Promise<boolean> {
   }
 }
 
-// 問題の削除（この端末およびSupabaseから削除）
+// 問題の削除（管理者認証された端末からのみ実行可能）
 export async function deleteProblem(problemId: string): Promise<boolean> {
+  // 管理者認証チェック（一般ユーザーは絶対に削除不可）
+  if (!isDeviceAdmin()) {
+    console.warn('Unauthorized delete attempt blocked.');
+    return false;
+  }
+
   // 削除済みリストに登録（初期問題の場合もリロードで復活させない）
   addDeletedProblemId(problemId);
 
@@ -278,44 +281,34 @@ export async function submitVote(
 }
 
 // ==========================================
-// このデバイス限定の権限管理ヘルパー
+// このデバイス限定の管理者認証ヘルパー
 // ==========================================
 
+// 管理者端末として認証されているか判定
 export function isDeviceAdmin(): boolean {
   if (typeof window === 'undefined') return false;
-  return localStorage.getItem(LOCAL_STORAGE_ADMIN_KEY) === 'true';
+  return localStorage.getItem(LOCAL_STORAGE_ADMIN_TOKEN_KEY) === 'authenticated_admin';
 }
 
-export function setDeviceAdmin(enabled: boolean): void {
-  if (typeof window === 'undefined') return;
-  localStorage.setItem(LOCAL_STORAGE_ADMIN_KEY, enabled ? 'true' : 'false');
-}
-
-export function isProblemCreatedOnThisDevice(problemId: string): boolean {
+// パスワードで管理者認証を実行
+export function verifyAndSetAdmin(secretInput: string): boolean {
   if (typeof window === 'undefined') return false;
-  try {
-    const list = JSON.parse(localStorage.getItem(LOCAL_STORAGE_MY_PROBLEMS_KEY) || '[]');
-    return list.includes(problemId);
-  } catch {
-    return false;
+  if (secretInput.trim() === ADMIN_SECRET) {
+    localStorage.setItem(LOCAL_STORAGE_ADMIN_TOKEN_KEY, 'authenticated_admin');
+    return true;
   }
+  return false;
 }
 
-export function recordMyCreatedProblem(problemId: string): void {
+// 管理者認証を解除（一般端末に戻す）
+export function revokeAdmin(): void {
   if (typeof window === 'undefined') return;
-  try {
-    const list: string[] = JSON.parse(localStorage.getItem(LOCAL_STORAGE_MY_PROBLEMS_KEY) || '[]');
-    if (!list.includes(problemId)) {
-      list.push(problemId);
-      localStorage.setItem(LOCAL_STORAGE_MY_PROBLEMS_KEY, JSON.stringify(list));
-    }
-  } catch (e) {
-    console.error(e);
-  }
+  localStorage.removeItem(LOCAL_STORAGE_ADMIN_TOKEN_KEY);
 }
 
-export function canDeleteProblemOnThisDevice(problemId: string): boolean {
-  return isDeviceAdmin() || isProblemCreatedOnThisDevice(problemId);
+// 削除権限の判定: 管理者として認証された端末のみ TRUE（一般ユーザーは 100% FALSE）
+export function canDeleteProblemOnThisDevice(): boolean {
+  return isDeviceAdmin();
 }
 
 // ==========================================

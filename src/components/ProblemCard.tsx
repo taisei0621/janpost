@@ -17,6 +17,7 @@ interface ProblemCardProps {
   onVote?: (problemId: string, tileId: string, comment?: string) => void;
   onLike?: (problemId: string, increment: boolean) => void;
   onDelete?: (problemId: string) => void;
+  canDelete?: boolean;
 }
 
 const WINDS: Array<'東家' | '南家' | '西家' | '北家'> = ['東家', '南家', '西家', '北家'];
@@ -33,6 +34,7 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({
   onVote,
   onLike,
   onDelete,
+  canDelete: propCanDelete,
 }) => {
   // 手牌13枚を自動理牌し、14枚目をツモ牌として保持
   const sortedHand = useMemo(() => {
@@ -51,7 +53,7 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({
   // いいね機能
   const [isLiked, setIsLiked] = useState<boolean>(() => isProblemLikedByMe(problem.id));
   const [likeCount, setLikeCount] = useState<number>(problem.likes || 0);
-  const canDelete = canDeleteProblemOnThisDevice(problem.id);
+  const canDelete = propCanDelete !== undefined ? propCanDelete : canDeleteProblemOnThisDevice();
 
   const handleToggleLike = () => {
     const nextLiked = !isLiked;
@@ -172,7 +174,7 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({
   // プレイヤーデータ
   const players = problem.context.players;
   const scores = problem.context.scores;
-  const hasDetailedBoard = Boolean(players && Object.keys(players).length > 0);
+  const hasDetailedBoard = true; // 全問題で常に対局盤面（卓上・一覧）を展開可能
 
   return (
     <div className="w-full max-w-3xl bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-xl overflow-hidden transition-all mb-8">

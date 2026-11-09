@@ -10,6 +10,7 @@ interface MahjongTileProps {
   size?: 'xs' | 'sm' | 'md' | 'lg';
   isTsumo?: boolean;
   disabled?: boolean;
+  isUnavailable?: boolean; // 上限達成などで選択不可（薄暗くする）
   badge?: string;
   showTsumoLabel?: boolean;
   isTsumogiri?: boolean; // true = ツモ切り（薄暗く表示）
@@ -23,6 +24,7 @@ export const MahjongTile: React.FC<MahjongTileProps> = ({
   size = 'md',
   isTsumo = false,
   disabled = false,
+  isUnavailable = false,
   badge,
   showTsumoLabel = false,
   isTsumogiri = false,
@@ -47,8 +49,8 @@ export const MahjongTile: React.FC<MahjongTileProps> = ({
   // 横向き比率: 90x66 (1.364:1)
   const sizeClasses = {
     xs: isReach
-      ? 'w-[33px] h-[24px]'
-      : 'w-[24px] h-[33px]',
+      ? 'w-[25px] h-[18px] sm:w-[33px] sm:h-[24px]'
+      : 'w-[18px] h-[25px] sm:w-[24px] sm:h-[33px]',
     sm: isReach
       ? 'w-[42px] h-[31px]'
       : 'w-[31px] h-[42px]',
@@ -62,7 +64,9 @@ export const MahjongTile: React.FC<MahjongTileProps> = ({
 
   return (
     <div
-      className={`relative inline-flex items-center justify-center select-none transition-transform pt-3 ${
+      className={`relative inline-flex items-center justify-center select-none transition-transform ${
+        size === 'xs' ? 'pt-1' : 'pt-3'
+      } ${
         isTsumo ? 'ml-2 sm:ml-4' : ''
       }`}
     >
@@ -82,7 +86,7 @@ export const MahjongTile: React.FC<MahjongTileProps> = ({
 
       {/* リーチ宣言ラベル */}
       {isReach && (
-        <span className="absolute top-0.5 left-1/2 -translate-x-1/2 z-20 whitespace-nowrap px-1 text-[7px] font-bold rounded bg-red-600 text-white shadow-xs pointer-events-none">
+        <span className="absolute top-0 left-1/2 -translate-x-1/2 z-20 whitespace-nowrap px-0.5 sm:px-1 text-[6px] sm:text-[7px] font-bold rounded bg-red-600 text-white shadow-xs pointer-events-none">
           立直
         </span>
       )}
@@ -106,7 +110,7 @@ export const MahjongTile: React.FC<MahjongTileProps> = ({
               ? '-translate-y-2.5 ring-2 ring-blue-500 ring-offset-1 drop-shadow-[0_8px_16px_rgba(37,99,235,0.45)]'
               : 'drop-shadow-[0_2px_4px_rgba(0,0,0,0.18)]'
           }
-          ${disabled ? 'opacity-35 grayscale cursor-not-allowed' : ''}
+          ${isUnavailable ? 'opacity-30 grayscale cursor-not-allowed' : ''}
           ${
             isTsumogiri
               ? 'brightness-60 contrast-90 opacity-70 filter'

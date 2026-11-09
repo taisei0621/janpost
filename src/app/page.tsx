@@ -12,7 +12,9 @@ import {
   deleteProblem,
   toggleProblemLike,
   isDeviceAdmin,
-  setDeviceAdmin,
+  verifyAndSetAdmin,
+  revokeAdmin,
+  ADMIN_SECRET,
 } from '../utils/problemService';
 import { isSupabaseConfigured } from '../utils/supabaseClient';
 
@@ -41,7 +43,23 @@ export default function Home() {
 
   useEffect(() => {
     loadData();
-    setIsAdmin(isDeviceAdmin());
+
+    // URLシークレットパラメータによる管理者認証チェック (?admin=janpost777 または ?secret=janpost777)
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const secret = params.get('admin') || params.get('secret');
+      if (secret) {
+        if (verifyAndSetAdmin(secret)) {
+          setIsAdmin(true);
+          alert('管理者端末として認証されました。この端末限定で問題の削除が可能です。');
+          window.history.replaceState({}, '', window.location.pathname);
+        } else {
+          alert('認証キーが一致しませんでした。');
+        }
+      } else {
+        setIsAdmin(isDeviceAdmin());
+      }
+    }
   }, []);
 
   // 新規問題の追加
@@ -105,11 +123,24 @@ export default function Home() {
     await submitVote(problemId, tileId, comment);
   };
 
-  // 管理者モードの切り替え
-  const handleToggleAdmin = () => {
-    const nextState = !isAdmin;
-    setIsAdmin(nextState);
-    setDeviceAdmin(nextState);
+  // 管理者パスワード認証・解除
+  const handleAdminAuth = () => {
+    if (isAdmin) {
+      if (window.confirm('管理者端末の認証を解除しますか？\n（解除すると削除ボタンが非表示になります）')) {
+        revokeAdmin();
+        setIsAdmin(false);
+      }
+      return;
+    }
+    const input = window.prompt('管理者パスワードを入力してください:');
+    if (input !== null) {
+      if (verifyAndSetAdmin(input)) {
+        setIsAdmin(true);
+        alert('管理者認証に成功しました。この端末限定で問題の削除が可能です。');
+      } else {
+        alert('パスワードが違います。');
+      }
+    }
   };
 
   // フィルタリング ＆ ソート（新着順・人気順・回答数順）
@@ -322,6 +353,7 @@ export default function Home() {
                 onVote={handleVote}
                 onLike={handleToggleLike}
                 onDelete={handleDeleteProblem}
+                canDelete={isAdmin}
               />
             ))
           )}
@@ -329,26 +361,38 @@ export default function Home() {
       </main>
 
       {/* フッター */}
-      <footer className="bg-white dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800 py-8 text-center text-xs text-zinc-500 space-y-2">
+      <footer className="bg-white dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800 py-8 text-center text-xs text-zinc-500 space-y-1.5">
         <p className="font-bold text-zinc-700 dark:text-zinc-300">
           雀ポスト (JanPost) - 麻雀何切る投稿・投票プラットフォーム
         </p>
-        <p className="text-zinc-400">© 2026 JanPost. All rights reserved.</p>
-
-        {/* この端末限定の管理モードトグル */}
-        <div className="pt-2">
+        <p className="text-zinc-400">
           <button
             type="button"
-            onClick={handleToggleAdmin}
-            className={`text-[10px] px-2.5 py-1 rounded border transition-colors cursor-pointer ${
-              isAdmin
-                ? 'bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-950 dark:text-amber-200'
-                : 'text-zinc-400 border-zinc-200 dark:border-zinc-800 hover:text-zinc-600'
-            }`}
+            onClick={handleAdminAuth}
+            className="hover:underline cursor-pointer"
+            title="管理者ログイン"
           >
-            {isAdmin ? '● 端末管理モード有効（全問題の削除可能）' : '○ 端末管理モード無効'}
-          </button>
-        </div>
+            © 2026 JanPost.
+          </button>{' '}
+          All rights reserved.
+        </p>
+
+        {/* 管理者端末認証中のみ表示（一般ユーザーには一切表示されません） */}
+        {isAdmin && (
+          <div className="pt-1">
+            <span className="inline-flex items-center gap-1.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 px-2.5 py-1 rounded text-[11px] border border-zinc-300 dark:border-zinc-700">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              <span>管理者端末として認証中（問題の削除が可能）</span>
+              <button
+                type="button"
+                onClick={handleAdminAuth}
+                className="text-red-500 hover:text-red-700 ml-1 underline cursor-pointer"
+              >
+                ログアウト
+              </button>
+            </span>
+          </div>
+        )}
       </footer>
 
       {/* 投稿モーダル */}

@@ -851,6 +851,7 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
                               tileId={t}
                               size="xs"
                               disabled={isDisabled}
+                              isUnavailable={isDisabled}
                               onClick={() => handleAddTile(t)}
                             />
                             {remaining <= 1 && (
@@ -881,6 +882,7 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
                               tileId={t}
                               size="xs"
                               disabled={isDisabled}
+                              isUnavailable={isDisabled}
                               onClick={() => handleAddTile(t)}
                             />
                             {remaining <= 1 && (
@@ -911,6 +913,7 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
                               tileId={t}
                               size="xs"
                               disabled={isDisabled}
+                              isUnavailable={isDisabled}
                               onClick={() => handleAddTile(t)}
                             />
                             {remaining <= 1 && (
@@ -941,6 +944,7 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
                               tileId={t}
                               size="xs"
                               disabled={isDisabled}
+                              isUnavailable={isDisabled}
                               onClick={() => handleAddTile(t)}
                             />
                             {remaining <= 1 && (
