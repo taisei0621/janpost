@@ -49,8 +49,8 @@ export const MahjongTile: React.FC<MahjongTileProps> = ({
   // 横向き比率: 90x66 (1.364:1)
   const sizeClasses = {
     xs: isReach
-      ? 'w-[25px] h-[18px] sm:w-[33px] sm:h-[24px]'
-      : 'w-[18px] h-[25px] sm:w-[24px] sm:h-[33px]',
+      ? 'w-[22px] h-[16px] sm:w-[33px] sm:h-[24px]'
+      : 'w-[16px] h-[22px] sm:w-[24px] sm:h-[33px]',
     sm: isReach
       ? 'w-[42px] h-[31px]'
       : 'w-[31px] h-[42px]',

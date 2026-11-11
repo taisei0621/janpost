@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Problem, PlayerSituation, DiscardTile } from '../types/mahjong';
 import { MahjongTile } from './MahjongTile';
-import { parseMeldTiles } from '../utils/mahjongUtils';
+import { parseMeldTiles, getDoraTiles } from '../utils/mahjongUtils';
 
 interface MahjongTableViewProps {
   problem: Problem;
@@ -14,6 +14,7 @@ type WindType = typeof WIND_ORDER[number];
 
 export const MahjongTableView: React.FC<MahjongTableViewProps> = ({ problem }) => {
   const [viewMode, setViewMode] = useState<'table' | 'list'>('table');
+  const doraTiles = getDoraTiles(problem.context);
 
   const rawScores = problem.context.scores;
   const scores: Record<string, number> | undefined = typeof rawScores === 'string'
@@ -172,7 +173,7 @@ export const MahjongTableView: React.FC<MahjongTableViewProps> = ({ problem }) =
                 {Array.from({ length: Math.max(0, 6 - rowTiles.length) }).map((_, slotIdx) => (
                   <div
                     key={`slot-${seat.wind}-${rIdx}-${slotIdx}`}
-                    className="w-[18px] h-[25px] sm:w-[24px] sm:h-[33px] border border-dashed border-emerald-500/30 rounded-[2px] flex items-center justify-center text-[8px] sm:text-[9px] text-emerald-300/40 select-none"
+                    className="w-[16px] h-[22px] sm:w-[24px] sm:h-[33px] border border-dashed border-emerald-500/30 rounded-[2px] flex items-center justify-center text-[7px] sm:text-[9px] text-emerald-300/40 select-none"
                   >
                     {rowTiles.length + slotIdx + 1}
                   </div>
@@ -194,7 +195,9 @@ export const MahjongTableView: React.FC<MahjongTableViewProps> = ({ problem }) =
             対局盤面
           </span>
           <span className="text-[11px] text-zinc-500 font-mono">
-            {problem.context.round} {problem.context.turn}巡目
+            {problem.context.round}
+            {problem.context.honba && problem.context.honba > 0 ? ` ${problem.context.honba}本場` : ''}
+            {' '}{problem.context.turn}巡目
           </span>
         </div>
 
@@ -227,7 +230,7 @@ export const MahjongTableView: React.FC<MahjongTableViewProps> = ({ problem }) =
 
       {/* 1. 卓上配置（実戦の麻雀卓全景） */}
       {viewMode === 'table' && (
-        <div className="w-full overflow-x-auto pb-1 flex justify-center">
+        <div className="w-full overflow-x-auto pb-1 flex justify-start sm:justify-center">
           <div className="w-full max-w-[640px] rounded-xl p-2 sm:p-4 bg-[#1a6639] border border-[#134d2b] shadow-inner">
             <div className="relative rounded-lg p-2 sm:p-3 bg-[#1e7542] border border-emerald-500/20 flex flex-col items-center gap-2 sm:gap-3">
               {/* 対面（上） */}
@@ -245,13 +248,30 @@ export const MahjongTableView: React.FC<MahjongTableViewProps> = ({ problem }) =
                 {/* センターボックス（サイコロ部） */}
                 <div className="shrink-0 w-24 sm:w-36 p-1.5 sm:p-2 rounded-lg bg-[#14532d] border border-amber-500/50 flex flex-col items-center justify-center text-center gap-1 sm:gap-1.5 shadow-sm text-white">
                   <div className="px-1.5 sm:px-2 py-0.5 bg-black/40 rounded text-[9px] sm:text-[11px] font-semibold tracking-wide">
-                    {problem.context.round} {problem.context.turn}巡目
+                    {problem.context.round}
+                    {problem.context.honba && problem.context.honba > 0 ? ` ${problem.context.honba}本場` : ''}
+                    {' '}{problem.context.turn}巡目
                   </div>
 
+                  {/* ドラ表示牌（最大5枚対応） */}
                   <div className="flex flex-col items-center gap-0.5">
-                    <span className="text-[8px] sm:text-[9px] text-zinc-300">ドラ表示牌</span>
-                    <MahjongTile tileId={problem.context.dora} size="xs" disabled />
+                    <span className="text-[8px] sm:text-[9px] text-zinc-300">
+                      ドラ表示牌{doraTiles.length > 1 ? ` (${doraTiles.length}枚)` : ''}
+                    </span>
+                    <div className="flex items-center gap-0.5 justify-center flex-wrap max-w-full">
+                      {doraTiles.map((dt, idx) => (
+                        <MahjongTile key={`tv-dora-${dt}-${idx}`} tileId={dt} size="xs" disabled />
+                      ))}
+                    </div>
                   </div>
+
+                  {/* 本場（積み棒）表示 */}
+                  {problem.context.honba && problem.context.honba > 0 ? (
+                    <div className="flex items-center gap-0.5 bg-amber-600/90 text-white px-1.5 py-0.5 rounded text-[8px] sm:text-[9px] font-semibold shadow-xs">
+                      <img src="/pai-images/tennbou-000.png" alt="本場" className="h-1.5 sm:h-2 w-auto rotate-90" />
+                      <span>{problem.context.honba}本場 (+{problem.context.honba * 300}点)</span>
+                    </div>
+                  ) : null}
 
                   {reachCount > 0 ? (
                     <div className="flex items-center gap-0.5 sm:gap-1 bg-red-600/90 text-white px-1.5 sm:px-2 py-0.5 rounded text-[8px] sm:text-[9px] font-semibold">

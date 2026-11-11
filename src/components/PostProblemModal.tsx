@@ -42,9 +42,10 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
   const [title, setTitle] = useState('');
   const [level, setLevel] = useState<ProblemLevel>('intermediate');
   const [round, setRound] = useState('東1局');
+  const [honba, setHonba] = useState<number>(0);
   const [turn, setTurn] = useState(6);
   const [wind, setWind] = useState<'東家' | '南家' | '西家' | '北家'>('南家');
-  const [dora, setDora] = useState('5m');
+  const [doraList, setDoraList] = useState<string[]>(['5m']);
   const [author, setAuthor] = useState('');
 
   // 手牌
@@ -108,8 +109,8 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
     }
   };
 
-  // 使用済み牌の全体リスト（ドラ + 手牌）
-  const usedTilesInHandAndDora = [dora, ...hand];
+  // 使用済み牌の全体リスト（ドラ最大5枚 + 手牌）
+  const usedTilesInHandAndDora = [...doraList, ...hand];
 
   // パレットの各牌が使用可能か判定（ドラ含め4枚制限、赤牌1枚制限）
   const checkTileAvailability = (tileId: string) => {
@@ -284,9 +285,11 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
       imageUrl: postMode === 'photo' && uploadedImage ? uploadedImage : undefined,
       context: {
         round,
+        honba: Number(honba) || 0,
         turn: Number(turn),
         wind,
-        dora,
+        dora: doraList[0] || '5m',
+        doras: doraList,
         score: scores[wind],
         scores,
         players: playersMap,
@@ -451,8 +454,23 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
                 type="text"
                 value={round}
                 onChange={(e) => setRound(e.target.value)}
-                className="w-full text-xs p-1.5 rounded border dark:bg-zinc-800 dark:border-zinc-700"
+                placeholder="東1局"
+                className="w-full text-xs p-1.5 rounded border dark:bg-zinc-800 dark:border-zinc-700 font-bold"
               />
+            </div>
+            <div>
+              <label className="block text-[11px] font-bold text-zinc-500 mb-1">本場</label>
+              <div className="flex items-center gap-1">
+                <input
+                  type="number"
+                  min={0}
+                  max={20}
+                  value={honba}
+                  onChange={(e) => setHonba(Math.max(0, Number(e.target.value)))}
+                  className="w-full text-xs p-1.5 rounded border dark:bg-zinc-800 dark:border-zinc-700 font-bold text-center"
+                />
+                <span className="text-xs text-zinc-500 shrink-0 font-medium">本場</span>
+              </div>
             </div>
             <div>
               <label className="block text-[11px] font-bold text-zinc-500 mb-1">巡目</label>
@@ -462,7 +480,7 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
                 max={18}
                 value={turn}
                 onChange={(e) => setTurn(Number(e.target.value))}
-                className="w-full text-xs p-1.5 rounded border dark:bg-zinc-800 dark:border-zinc-700"
+                className="w-full text-xs p-1.5 rounded border dark:bg-zinc-800 dark:border-zinc-700 font-bold text-center"
               />
             </div>
             <div>
@@ -478,20 +496,67 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
                 <option value="北家">北家</option>
               </select>
             </div>
-            <div>
-              <label className="block text-[11px] font-bold text-zinc-500 mb-1">ドラ表示牌</label>
-              <select
-                value={dora}
-                onChange={(e) => setDora(e.target.value)}
-                className="w-full text-xs p-1.5 rounded border dark:bg-zinc-800 dark:border-zinc-700 font-mono"
-              >
-                {ALL_TILES.map((t) => (
-                  <option key={`dora-${t}`} value={t}>
-                    {getTileDisplay(t).topText}
-                    {getTileDisplay(t).bottomText} ({t})
-                  </option>
-                ))}
-              </select>
+          </div>
+
+          {/* ドラ表示牌（最大5枚：表ドラ ＋ 槓ドラ） */}
+          <div className="bg-zinc-50 dark:bg-zinc-800/50 p-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
+                <span>🀄 ドラ表示牌</span>
+                <span className="text-[10px] font-normal text-zinc-400">（最大5枚・槓ドラ対応）</span>
+              </span>
+              {doraList.length < 5 && (
+                <button
+                  type="button"
+                  onClick={() => setDoraList((prev) => [...prev, '1m'])}
+                  className="text-xs text-blue-600 dark:text-blue-400 hover:underline font-bold flex items-center gap-1 cursor-pointer"
+                >
+                  <span>+</span>
+                  <span>ドラ追加（{doraList.length}/5）</span>
+                </button>
+              )}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              {doraList.map((dt, idx) => (
+                <div
+                  key={`dora-slot-${idx}`}
+                  className="flex items-center gap-1.5 bg-white dark:bg-zinc-900 p-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 shadow-2xs"
+                >
+                  <MahjongTile tileId={dt} size="sm" disabled />
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[9px] text-zinc-500 font-bold">
+                      {idx === 0 ? '表ドラ' : `槓ドラ${idx}`}
+                    </span>
+                    <select
+                      value={dt}
+                      onChange={(e) => {
+                        const updated = [...doraList];
+                        updated[idx] = e.target.value;
+                        setDoraList(updated);
+                      }}
+                      className="text-xs p-1 rounded border dark:bg-zinc-800 dark:border-zinc-700 font-mono"
+                    >
+                      {ALL_TILES.map((t) => (
+                        <option key={`dora-opt-${idx}-${t}`} value={t}>
+                          {getTileDisplay(t).topText}
+                          {getTileDisplay(t).bottomText} ({t})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {doraList.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => setDoraList((prev) => prev.filter((_, i) => i !== idx))}
+                      className="text-zinc-400 hover:text-red-500 p-1 text-xs font-bold cursor-pointer transition-colors"
+                      title="このドラ表示牌を削除"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
 

@@ -5,7 +5,7 @@ import { Problem, VoteComment, DiscardTile, PlayerSituation } from '../types/mah
 import { MahjongTile } from './MahjongTile';
 import { MahjongRiver } from './MahjongRiver';
 import { MahjongTableView } from './MahjongTableView';
-import { getTileDisplay, sortHandWithTsumo } from '../utils/mahjongUtils';
+import { getTileDisplay, sortHandWithTsumo, getDoraTiles } from '../utils/mahjongUtils';
 import {
   isProblemLikedByMe,
   setProblemLikedByMe,
@@ -117,6 +117,9 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({
       hasRiver: totalDiscards > 0 || totalMelds > 0,
     };
   }, [problem.context.players]);
+
+  // ドラ表示牌（最大5枚）
+  const doraTiles = getDoraTiles(problem.context);
 
   // 選択中の牌
   const selectedTile = isPhotoMode
@@ -311,6 +314,7 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({
               <span className="text-zinc-500 font-medium">局況:</span>
               <span className="font-bold text-zinc-900 dark:text-zinc-100">
                 {problem.context.round}
+                {problem.context.honba && problem.context.honba > 0 ? ` ${problem.context.honba}本場` : ''}
               </span>
               <span className="text-zinc-400">/</span>
               <span className="font-bold text-zinc-900 dark:text-zinc-100">
@@ -328,9 +332,15 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({
               )}
             </div>
 
-            <div className="flex items-center gap-2">
-              <span className="text-zinc-500 font-medium text-xs sm:text-sm">ドラ表示牌:</span>
-              <MahjongTile tileId={problem.context.dora} size="sm" disabled />
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-zinc-500 font-medium text-xs sm:text-sm">
+                ドラ表示牌{doraTiles.length > 1 ? ` (${doraTiles.length}枚)` : ''}:
+              </span>
+              <div className="flex items-center gap-1 flex-wrap">
+                {doraTiles.map((dt, idx) => (
+                  <MahjongTile key={`card-dora-${dt}-${idx}`} tileId={dt} size="sm" disabled />
+                ))}
+              </div>
             </div>
           </div>
 

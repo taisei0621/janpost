@@ -11,25 +11,42 @@ const LOCAL_STORAGE_MY_PROBLEMS_KEY = 'janpost_my_created_problem_ids';
 const LOCAL_STORAGE_ADMIN_TOKEN_KEY = 'janpost_admin_authenticated';
 export const ADMIN_SECRET = 'janpost777';
 
-// note カラムに imageUrl を埋め込む/復元するヘルパー
-// （Supabase の problems テーブルに image_url カラムが存在しない環境でも確実に写真が永続化されるようにします）
-export function encodeNoteWithImage(note?: string, imageUrl?: string): string | null {
-  if (!imageUrl && !note) return null;
-  if (!imageUrl) return note || null;
+// note カラムに imageUrl, honba, doras を埋め込む/復元するヘルパー
+// （Supabase の problems テーブルに専用カラムが存在しない環境でも確実に写真や追加メタデータが全端末同期されます）
+export function encodeNoteWithImage(
+  note?: string,
+  imageUrl?: string,
+  extra?: { honba?: number; doras?: string[] }
+): string | null {
+  const hasExtra = Boolean(extra?.honba || (extra?.doras && extra.doras.length > 1));
+  if (!imageUrl && !note && !hasExtra) return null;
+  if (!imageUrl && !hasExtra) return note || null;
   return JSON.stringify({
     note: note || '',
-    imageUrl: imageUrl,
+    imageUrl: imageUrl || undefined,
+    honba: extra?.honba || undefined,
+    doras: extra?.doras || undefined,
   });
 }
 
-export function decodeNoteWithImage(rawNote?: string | null): { note?: string; imageUrl?: string } {
+export function decodeNoteWithImage(rawNote?: string | null): {
+  note?: string;
+  imageUrl?: string;
+  honba?: number;
+  doras?: string[];
+} {
   if (!rawNote || typeof rawNote !== 'string') return {};
-  if (rawNote.startsWith('{') && rawNote.includes('"imageUrl"')) {
+  if (
+    rawNote.startsWith('{') &&
+    (rawNote.includes('"imageUrl"') || rawNote.includes('"honba"') || rawNote.includes('"doras"'))
+  ) {
     try {
       const parsed = JSON.parse(rawNote);
       return {
         note: parsed.note || undefined,
         imageUrl: parsed.imageUrl || undefined,
+        honba: typeof parsed.honba === 'number' ? parsed.honba : undefined,
+        doras: Array.isArray(parsed.doras) ? parsed.doras : undefined,
       };
     } catch {
       return { note: rawNote };
@@ -100,9 +117,22 @@ export async function getProblems(): Promise<Problem[]> {
     const commentsMap: Record<string, VoteComment[]> = {};
     const cloudLikesMap: Record<string, number> = {};
     const globallyDeletedIds = new Set<string>();
+    const cloudProblemOverrides: Record<string, any> = {};
 
     if (votesData) {
       for (const v of votesData) {
+        // クラウドデータ同期（全端末への河・点数・写真の共有）
+        if (v.tile_id === '__sync_problem_data__') {
+          try {
+            const syncObj = JSON.parse(v.comment);
+            cloudProblemOverrides[v.problem_id] = {
+              ...(cloudProblemOverrides[v.problem_id] || {}),
+              ...syncObj,
+            };
+          } catch {}
+          continue;
+        }
+
         // グローバル削除マーカー
         if (v.tile_id === '__deleted__') {
           globallyDeletedIds.add(v.problem_id);
@@ -160,12 +190,14 @@ export async function getProblems(): Promise<Problem[]> {
           ...(initialCommentsMap[row.id] || []),
         ];
 
-        const { note: decodedNote, imageUrl: decodedImageUrl } = decodeNoteWithImage(row.note);
+        const { note: decodedNote, imageUrl: decodedImageUrl, honba: decodedHonba, doras: decodedDoras } = decodeNoteWithImage(row.note);
+        const cloudOverride = cloudProblemOverrides[row.id];
         const localProblem = localMap.get(row.id);
         const resolvedImageUrl =
           row.image_url ||
           row.imageUrl ||
           decodedImageUrl ||
+          cloudOverride?.imageUrl ||
           localProblem?.imageUrl ||
           undefined;
 
@@ -176,11 +208,39 @@ export async function getProblems(): Promise<Problem[]> {
         const totalLikes = Math.max(0, baseLikes + netLikesFromCloud);
         const resolvedLikes = Math.max(totalLikes, localCount);
 
-        const rawPlayers = row.players || localProblem?.context?.players;
+        const rawPlayers = row.players || cloudOverride?.players || localProblem?.context?.players;
         const parsedPlayers = typeof rawPlayers === 'string' ? (() => { try { return JSON.parse(rawPlayers); } catch { return undefined; } })() : rawPlayers;
 
-        const rawScores = row.scores || localProblem?.context?.scores;
+        const rawScores = row.scores || cloudOverride?.scores || localProblem?.context?.scores;
         const parsedScores = typeof rawScores === 'string' ? (() => { try { return JSON.parse(rawScores); } catch { return undefined; } })() : rawScores;
+
+        const resolvedHonba = row.honba ?? cloudOverride?.honba ?? decodedHonba ?? localProblem?.context?.honba ?? 0;
+        const resolvedDoras = cloudOverride?.doras || decodedDoras || (Array.isArray(row.doras) ? row.doras : undefined) || localProblem?.context?.doras;
+
+        // 自動クラウド同期: ローカルに河や点数があり、クラウドにまだない場合、自動ブロードキャスト（全端末で閲覧可能にする）
+        if (
+          typeof window !== 'undefined' &&
+          supabase &&
+          localProblem?.context?.players &&
+          !row.players &&
+          !cloudProblemOverrides[row.id]
+        ) {
+          supabase.from('votes').insert([{
+            problem_id: row.id,
+            tile_id: '__sync_problem_data__',
+            comment: JSON.stringify({
+              players: localProblem.context.players,
+              scores: localProblem.context.scores,
+              discardsInfo: localProblem.context.discardsInfo,
+              scoreInfo: localProblem.context.scoreInfo,
+              imageUrl: localProblem.imageUrl,
+              honba: localProblem.context.honba,
+              doras: localProblem.context.doras,
+            }),
+          }]).then(() => {
+            console.log('Auto-synced problem data to cloud for all devices:', row.id);
+          });
+        }
 
         return {
           id: row.id,
@@ -189,9 +249,11 @@ export async function getProblems(): Promise<Problem[]> {
           imageUrl: resolvedImageUrl,
           context: {
             round: row.round,
+            honba: resolvedHonba,
             turn: row.turn,
             wind: row.wind,
             dora: row.dora,
+            doras: resolvedDoras,
             score: row.score,
             scores: parsedScores || undefined,
             players: parsedPlayers || undefined,
@@ -233,7 +295,14 @@ export async function createProblem(newProblem: Problem): Promise<boolean> {
   }
 
   try {
-    const encodedNote = encodeNoteWithImage(newProblem.context.note, newProblem.imageUrl);
+    const encodedNote = encodeNoteWithImage(
+      newProblem.context.note,
+      newProblem.imageUrl,
+      {
+        honba: newProblem.context.honba,
+        doras: newProblem.context.doras,
+      }
+    );
 
     const payload: any = {
       id: newProblem.id,

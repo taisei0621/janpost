@@ -47,9 +47,11 @@ export interface Problem {
   imageUrl?: string; // 写真・スクショ投稿時の画像URL (Base64)
   context: {
     round: string; // e.g. "東1局"
+    honba?: number; // 本場数 e.g. 0, 1, 2
     turn: number;  // 巡目 e.g. 6
     wind: string;  // 自家 e.g. "南家"
-    dora: string;  // ドラ表示牌 or ドラ e.g. "5p", "0m"
+    dora: string;  // ドラ表示牌（1枚目） e.g. "5p", "0m"
+    doras?: string[]; // ドラ表示牌（最大5枚：表ドラ＋槓ドラ）
     score?: number; // 点数状況 (持ち点数値)
     scores?: Record<'東家' | '南家' | '西家' | '北家', number>; // 各家の点数
     players?: Record<string, PlayerSituation>; // 各家の捨て牌・鳴き・リーチ状況

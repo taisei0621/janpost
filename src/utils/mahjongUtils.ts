@@ -243,3 +243,20 @@ export function parseMeldTiles(meldStr: string): { label?: string; tileIds: stri
 
   return { tileIds: [] };
 }
+
+/**
+ * ドラ表示牌（最大5枚）を安全に配列として取得するヘルパー
+ */
+export function getDoraTiles(context?: { dora?: string; doras?: string[] } | null): string[] {
+  if (!context) return ['5p'];
+  if (context.doras && Array.isArray(context.doras) && context.doras.length > 0) {
+    return context.doras.slice(0, 5);
+  }
+  if (context.dora) {
+    if (context.dora.includes(',')) {
+      return context.dora.split(',').map((s) => s.trim()).filter(Boolean).slice(0, 5);
+    }
+    return [context.dora];
+  }
+  return ['5p'];
+}
