@@ -176,6 +176,12 @@ export async function getProblems(): Promise<Problem[]> {
         const totalLikes = Math.max(0, baseLikes + netLikesFromCloud);
         const resolvedLikes = Math.max(totalLikes, localCount);
 
+        const rawPlayers = row.players || localProblem?.context?.players;
+        const parsedPlayers = typeof rawPlayers === 'string' ? (() => { try { return JSON.parse(rawPlayers); } catch { return undefined; } })() : rawPlayers;
+
+        const rawScores = row.scores || localProblem?.context?.scores;
+        const parsedScores = typeof rawScores === 'string' ? (() => { try { return JSON.parse(rawScores); } catch { return undefined; } })() : rawScores;
+
         return {
           id: row.id,
           title: row.title,
@@ -187,11 +193,11 @@ export async function getProblems(): Promise<Problem[]> {
             wind: row.wind,
             dora: row.dora,
             score: row.score,
-            scores: row.scores || undefined,
-            players: row.players || undefined,
-            scoreInfo: row.score_info || row.scoreInfo || undefined,
-            discardsInfo: row.discards_info || row.discardsInfo || undefined,
-            note: decodedNote,
+            scores: parsedScores || undefined,
+            players: parsedPlayers || undefined,
+            scoreInfo: row.score_info || row.scoreInfo || localProblem?.context?.scoreInfo || undefined,
+            discardsInfo: row.discards_info || row.discardsInfo || localProblem?.context?.discardsInfo || undefined,
+            note: decodedNote || localProblem?.context?.note || undefined,
           },
           hand: Array.isArray(row.hand) ? row.hand : JSON.parse(row.hand || '[]'),
           discards: Array.isArray(row.discards) ? row.discards : JSON.parse(row.discards || '[]'),
@@ -253,16 +259,21 @@ export async function createProblem(newProblem: Problem): Promise<boolean> {
     const { error } = await supabase.from('problems').insert([payload]);
 
     if (error) {
-      console.warn('First insert attempt failed, trying fallback without new columns:', error);
-      delete payload.score_info;
-      delete payload.discards_info;
-      delete payload.scores;
-      delete payload.players;
-      delete payload.likes;
-      // note は画像が含まれているため削除せず保持
-      const { error: fallbackErr } = await supabase.from('problems').insert([payload]);
-      if (fallbackErr) {
-        console.error('Failed to insert problem to Supabase:', fallbackErr);
+      console.warn('Initial insert attempt failed, checking fallback:', error);
+      // カラム未定義エラーの場合のみ新カラムを除外して再試行
+      if (error.message && (error.message.includes('column') || error.message.includes('schema'))) {
+        delete payload.score_info;
+        delete payload.discards_info;
+        delete payload.scores;
+        delete payload.players;
+        delete payload.likes;
+        const { error: fallbackErr } = await supabase.from('problems').insert([payload]);
+        if (fallbackErr) {
+          console.error('Failed to insert problem to Supabase (fallback):', fallbackErr);
+          return false;
+        }
+      } else {
+        console.error('Failed to insert problem to Supabase:', error);
         return false;
       }
     }

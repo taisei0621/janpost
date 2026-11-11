@@ -15,7 +15,11 @@ type WindType = typeof WIND_ORDER[number];
 export const MahjongTableView: React.FC<MahjongTableViewProps> = ({ problem }) => {
   const [viewMode, setViewMode] = useState<'table' | 'list'>('table');
 
-  const scores = problem.context.scores;
+  const rawScores = problem.context.scores;
+  const scores: Record<string, number> | undefined = typeof rawScores === 'string'
+    ? (() => { try { return JSON.parse(rawScores); } catch { return undefined; } })()
+    : rawScores;
+
   const selfWind = (problem.context.wind as WindType) || '南家';
 
   // プレイヤーデータ（未設定時は各家25,000点の空河としてフォールバック）
@@ -26,8 +30,13 @@ export const MahjongTableView: React.FC<MahjongTableViewProps> = ({ problem }) =
     北家: { wind: '北家', score: scores?.['北家'] ?? 25000, discards: [], melds: [], isReach: false },
   };
 
-  const players = (problem.context.players && Object.keys(problem.context.players).length > 0)
-    ? problem.context.players
+  const rawPlayers = problem.context.players;
+  const parsedPlayers: Record<string, PlayerSituation> | undefined = typeof rawPlayers === 'string'
+    ? (() => { try { return JSON.parse(rawPlayers); } catch { return undefined; } })()
+    : rawPlayers;
+
+  const players = (parsedPlayers && typeof parsedPlayers === 'object' && Object.keys(parsedPlayers).length > 0)
+    ? parsedPlayers
     : fallbackPlayers;
 
   // 自家を基準とした相対席の計算
@@ -48,7 +57,16 @@ export const MahjongTableView: React.FC<MahjongTableViewProps> = ({ problem }) =
   // 卓内・6枚×3段の一体型河
   const renderBoardRiver = (seat: { wind: WindType; label: string; isSelf: boolean }) => {
     const p = players[seat.wind];
-    const discards = p?.discards || [];
+    const rawDiscards = p?.discards;
+    const discards: DiscardTile[] = Array.isArray(rawDiscards)
+      ? rawDiscards
+      : (typeof rawDiscards === 'string' ? (() => { try { return JSON.parse(rawDiscards); } catch { return []; } })() : []);
+
+    const rawMelds = p?.melds;
+    const melds: string[] = Array.isArray(rawMelds)
+      ? rawMelds
+      : (typeof rawMelds === 'string' ? (() => { try { return JSON.parse(rawMelds); } catch { return []; } })() : []);
+
     const sc = scores?.[seat.wind];
     const selfScore = scores?.[selfWind] || 25000;
     const diff = sc !== undefined ? sc - selfScore : 0;
@@ -96,9 +114,9 @@ export const MahjongTableView: React.FC<MahjongTableViewProps> = ({ problem }) =
         </div>
 
         {/* 鳴き牌（副露）: 実際の牌画像を表示 */}
-        {p?.melds && p.melds.length > 0 && (
+        {melds.length > 0 && (
           <div className="mb-1 flex flex-wrap items-center justify-center gap-1">
-            {p.melds.map((meldStr, mIdx) => {
+            {melds.map((meldStr, mIdx) => {
               const { label, tileIds } = parseMeldTiles(meldStr);
               return (
                 <div

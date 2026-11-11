@@ -96,6 +96,28 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({
   // 写真モードか手牌モードかの判定
   const isPhotoMode = Boolean(problem.imageUrl || (!problem.hand || problem.hand.length === 0));
 
+  // 河（捨て牌や鳴き）が登録されているか集計
+  const riverStats = useMemo(() => {
+    if (!problem.context.players) return { totalDiscards: 0, totalMelds: 0, hasRiver: false };
+    let totalDiscards = 0;
+    let totalMelds = 0;
+    const playersObj = typeof problem.context.players === 'string'
+      ? (() => { try { return JSON.parse(problem.context.players); } catch { return {}; } })()
+      : problem.context.players;
+
+    if (playersObj && typeof playersObj === 'object') {
+      for (const p of Object.values(playersObj) as PlayerSituation[]) {
+        if (p?.discards && Array.isArray(p.discards)) totalDiscards += p.discards.length;
+        if (p?.melds && Array.isArray(p.melds)) totalMelds += p.melds.length;
+      }
+    }
+    return {
+      totalDiscards,
+      totalMelds,
+      hasRiver: totalDiscards > 0 || totalMelds > 0,
+    };
+  }, [problem.context.players]);
+
   // 選択中の牌
   const selectedTile = isPhotoMode
     ? photoSelectedTile
@@ -298,6 +320,12 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({
               <span className="font-bold text-zinc-900 dark:text-zinc-100">
                 {problem.context.wind}
               </span>
+              {riverStats.hasRiver && (
+                <span className="ml-1 inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-100 dark:bg-emerald-950 dark:text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-300 dark:border-emerald-800">
+                  <span>🀄</span>
+                  <span>河あり</span>
+                </span>
+              )}
             </div>
 
             <div className="flex items-center gap-2">
@@ -369,7 +397,11 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({
               <button
                 type="button"
                 onClick={() => setShowRiverViewer(!showRiverViewer)}
-                className="w-full py-2 px-3 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-750 text-zinc-800 dark:text-zinc-200 rounded-lg text-xs font-semibold flex items-center justify-between transition-colors border border-zinc-200 dark:border-zinc-700 cursor-pointer"
+                className={`w-full py-2 px-3 rounded-lg text-xs font-semibold flex items-center justify-between transition-colors border cursor-pointer ${
+                  riverStats.hasRiver
+                    ? 'bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/60 text-emerald-900 dark:text-emerald-100 border-emerald-300 dark:border-emerald-700 shadow-xs'
+                    : 'bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-750 text-zinc-800 dark:text-zinc-200 border-zinc-200 dark:border-zinc-700'
+                }`}
               >
                 <span className="flex items-center gap-2">
                   <svg className="w-3.5 h-3.5 text-zinc-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -377,9 +409,15 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({
                     <path d="M3 9h18M9 21V9" />
                   </svg>
                   <span>対局盤面（各家の河・点数状況）</span>
+                  {riverStats.hasRiver && (
+                    <span className="text-[10px] bg-emerald-600 text-white font-bold px-1.5 py-0.5 rounded-full">
+                      捨て牌 {riverStats.totalDiscards}枚
+                      {riverStats.totalMelds > 0 ? ` / 副露 ${riverStats.totalMelds}` : ''}
+                    </span>
+                  )}
                 </span>
-                <span className="text-xs text-zinc-500 font-medium">
-                  {showRiverViewer ? '閉じる' : '開く'}
+                <span className={`text-xs font-bold ${riverStats.hasRiver ? 'text-emerald-700 dark:text-emerald-300' : 'text-zinc-500'}`}>
+                  {showRiverViewer ? '▲ 閉じる' : '▼ 盤面を開く'}
                 </span>
               </button>
 
@@ -421,9 +459,13 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({
 
         {/* 写真投稿モードで画像がクラウドにない場合のプレースホルダー */}
         {!problem.imageUrl && sortedHand.length === 0 && (
-          <div className="w-full mb-4 p-5 text-center bg-zinc-50 dark:bg-zinc-800/40 rounded-xl border border-dashed border-zinc-300 dark:border-zinc-700 text-xs text-zinc-500">
-            <span className="text-xl block mb-1">📷</span>
-            <span>写真投稿問題（投稿端末のローカルに写真が保存されています）</span>
+          <div className="w-full mb-4 p-5 text-center bg-zinc-50 dark:bg-zinc-800/40 rounded-xl border border-dashed border-zinc-300 dark:border-zinc-750 text-xs text-zinc-500 space-y-1">
+            <span className="text-xl block">📷</span>
+            <p className="font-bold text-zinc-700 dark:text-zinc-300">写真投稿問題（旧バージョンのテストデータ）</p>
+            <p className="text-[11px] text-zinc-400">
+              ※クラウド保存対応前の旧仕様で投稿されたため、投稿端末内のみに保存されています。<br />
+              （最新の投稿機能では、PC・スマホすべての端末で高画質写真が全同期されます）
+            </p>
           </div>
         )}
 
