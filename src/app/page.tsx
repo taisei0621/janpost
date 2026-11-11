@@ -190,11 +190,37 @@ export default function Home() {
 
           <div className="flex items-center gap-2">
             {isSupabaseConfigured && (
-              <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-700 bg-emerald-50 dark:bg-emerald-950/60 dark:text-emerald-400 px-2.5 py-1 rounded-md border border-emerald-200 dark:border-emerald-850">
+              <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-medium text-emerald-700 bg-emerald-50 dark:bg-emerald-950/60 dark:text-emerald-400 px-2.5 py-1 rounded-md border border-emerald-200 dark:border-emerald-850">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 <span>クラウド同期中</span>
               </span>
             )}
+
+            {/* 管理者モード切り替え */}
+            {isAdmin ? (
+              <div className="flex items-center gap-1 bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 text-xs px-2.5 py-1 rounded-md border border-amber-200 dark:border-amber-800">
+                <span className="text-[11px] font-bold">🛡️ 管理者</span>
+                <button
+                  type="button"
+                  onClick={handleAdminAuth}
+                  className="text-red-500 hover:text-red-700 ml-1 underline cursor-pointer text-[10px]"
+                  title="管理者モードを解除"
+                >
+                  解除
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={handleAdminAuth}
+                className="flex items-center gap-1 text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200 text-xs px-2 py-1 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer border border-zinc-200 dark:border-zinc-800"
+                title="管理者ログイン（全問の削除権限を取得）"
+              >
+                <span>🔑</span>
+                <span className="text-[11px]">管理者</span>
+              </button>
+            )}
+
             <button
               type="button"
               onClick={() => setIsModalOpen(true)}

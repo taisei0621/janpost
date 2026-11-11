@@ -419,6 +419,14 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({
           </div>
         )}
 
+        {/* 写真投稿モードで画像がクラウドにない場合のプレースホルダー */}
+        {!problem.imageUrl && sortedHand.length === 0 && (
+          <div className="w-full mb-4 p-5 text-center bg-zinc-50 dark:bg-zinc-800/40 rounded-xl border border-dashed border-zinc-300 dark:border-zinc-700 text-xs text-zinc-500">
+            <span className="text-xl block mb-1">📷</span>
+            <span>写真投稿問題（投稿端末のローカルに写真が保存されています）</span>
+          </div>
+        )}
+
         {/* 手牌14枚コンテナ（手牌がある場合） */}
         {sortedHand.length > 0 && (
           <div className="w-full flex flex-col items-center">

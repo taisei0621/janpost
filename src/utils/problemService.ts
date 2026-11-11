@@ -109,6 +109,12 @@ export async function getProblems(): Promise<Problem[]> {
           continue;
         }
 
+        // 復元マーカー
+        if (v.tile_id === '__undelete__') {
+          globallyDeletedIds.delete(v.problem_id);
+          continue;
+        }
+
         // いいねアクションの集計（RLS環境でも確実に全端末でいいね数を同期）
         if (v.tile_id === '__like__') {
           const current = cloudLikesMap[v.problem_id] || 0;
@@ -395,8 +401,32 @@ export function revokeAdmin(): void {
 export function isProblemCreatedOnThisDevice(problemId: string): boolean {
   if (typeof window === 'undefined') return false;
   try {
+    // 公式初期問題は投稿者本人ではないため除外
+    if (
+      problemId.startsWith('prob-beginner') ||
+      problemId.startsWith('prob-intermediate') ||
+      problemId.startsWith('prob-advanced')
+    ) {
+      return false;
+    }
+
+    // 1. 新設キー (janpost_my_created_problem_ids) をチェック
     const list: string[] = JSON.parse(localStorage.getItem(LOCAL_STORAGE_MY_PROBLEMS_KEY) || '[]');
-    return list.includes(problemId);
+    if (list.includes(problemId)) return true;
+
+    // 2. この端末のローカルキャッシュ (janpost_problems) をチェック（過去バージョンで作成された全問題を救済）
+    const localProblems: Problem[] = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY) || '[]');
+    const isMine = localProblems.some((p) => p && p.id === problemId);
+    if (isMine) {
+      // 次回以降のために新設キーにも自動保存
+      if (!list.includes(problemId)) {
+        list.push(problemId);
+        localStorage.setItem(LOCAL_STORAGE_MY_PROBLEMS_KEY, JSON.stringify(list));
+      }
+      return true;
+    }
+
+    return false;
   } catch {
     return false;
   }
