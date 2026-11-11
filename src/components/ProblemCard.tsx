@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Problem, VoteComment, DiscardTile, PlayerSituation } from '../types/mahjong';
 import { MahjongTile } from './MahjongTile';
 import { MahjongRiver } from './MahjongRiver';
@@ -9,7 +9,7 @@ import { getTileDisplay, sortHandWithTsumo } from '../utils/mahjongUtils';
 import {
   isProblemLikedByMe,
   setProblemLikedByMe,
-  canDeleteProblemOnThisDevice,
+  canDeleteProblem,
 } from '../utils/problemService';
 
 interface ProblemCardProps {
@@ -53,7 +53,20 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({
   // いいね機能
   const [isLiked, setIsLiked] = useState<boolean>(() => isProblemLikedByMe(problem.id));
   const [likeCount, setLikeCount] = useState<number>(problem.likes || 0);
-  const canDelete = propCanDelete !== undefined ? propCanDelete : canDeleteProblemOnThisDevice();
+
+  // propsのlikes・いいね状態の同期（再読み込みや集計更新時に追従）
+  useEffect(() => {
+    if (problem.likes !== undefined) {
+      setLikeCount(problem.likes);
+    }
+  }, [problem.likes]);
+
+  useEffect(() => {
+    setIsLiked(isProblemLikedByMe(problem.id));
+  }, [problem.id]);
+
+  // 方式①: 管理者端末またはこの端末で投稿した本人のみ削除可能
+  const canDelete = propCanDelete !== undefined ? propCanDelete : canDeleteProblem(problem.id);
 
   const handleToggleLike = () => {
     const nextLiked = !isLiked;
@@ -67,7 +80,7 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({
   };
 
   const handleDelete = () => {
-    if (window.confirm(`この問題「${problem.title}」を削除しますか？\n（この端末でのみ実行可能・元に戻せません）`)) {
+    if (window.confirm(`この問題「${problem.title}」を削除しますか？\n（元に戻せません）`)) {
       if (onDelete) {
         onDelete(problem.id);
       }

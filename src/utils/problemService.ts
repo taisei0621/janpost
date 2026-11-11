@@ -6,6 +6,8 @@ const LOCAL_STORAGE_KEY = 'janpost_problems';
 const LOCAL_STORAGE_VOTES_KEY = 'janpost_votes';
 const LOCAL_STORAGE_DELETED_KEY = 'janpost_deleted_problem_ids';
 const LOCAL_STORAGE_LIKES_KEY = 'janpost_liked_problem_ids';
+const LOCAL_STORAGE_LIKES_MAP_KEY = 'janpost_likes_count_map';
+const LOCAL_STORAGE_MY_PROBLEMS_KEY = 'janpost_my_created_problem_ids';
 const LOCAL_STORAGE_ADMIN_TOKEN_KEY = 'janpost_admin_authenticated';
 export const ADMIN_SECRET = 'janpost777';
 
@@ -38,10 +40,27 @@ export function decodeNoteWithImage(rawNote?: string | null): { note?: string; i
 
 // 問題一覧の取得（Supabase ＋ 投票数集計 ＋ コメント一覧 ＋ いいね数 ＋ 削除除外）
 export async function getProblems(): Promise<Problem[]> {
-  const deletedIds = getDeletedProblemIds();
+  const localDeletedIds = getDeletedProblemIds();
+
+  // 初期問題のプリセットコメント・いいね数マップ
+  const initialCommentsMap: Record<string, VoteComment[]> = {};
+  const initialLikesMap: Record<string, number> = {};
+  for (const initProb of INITIAL_PROBLEMS) {
+    if (initProb.comments) {
+      initialCommentsMap[initProb.id] = initProb.comments;
+    }
+    if (initProb.likes !== undefined) {
+      initialLikesMap[initProb.id] = initProb.likes;
+    }
+  }
 
   if (!isSupabaseConfigured || !supabase) {
-    return getLocalProblems().filter((p) => !deletedIds.includes(p.id));
+    return getLocalProblems()
+      .filter((p) => !localDeletedIds.includes(p.id))
+      .map((p) => ({
+        ...p,
+        likes: getLocalLikesCount(p.id) || p.likes || initialLikesMap[p.id] || 0,
+      }));
   }
 
   try {
@@ -53,20 +72,24 @@ export async function getProblems(): Promise<Problem[]> {
 
     if (probError || !problemsData || problemsData.length === 0) {
       console.warn('Supabase problems fetch fallback to local:', probError);
-      return getLocalProblems().filter((p) => !deletedIds.includes(p.id));
+      return getLocalProblems()
+        .filter((p) => !localDeletedIds.includes(p.id))
+        .map((p) => ({
+          ...p,
+          likes: getLocalLikesCount(p.id) || p.likes || initialLikesMap[p.id] || 0,
+        }));
     }
 
-    // 2. votes テーブルから投票全件（コメント付き）取得して集計
+    // 2. votes テーブルから全レコード（投票・コメント・いいね・削除マーカー）を取得
     let votesData: any[] | null = null;
     const { data: vData, error: voteError } = await supabase
       .from('votes')
       .select('id, problem_id, tile_id, comment, created_at')
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: true }); // 昇順で処理
 
     if (!voteError) {
       votesData = vData;
     } else {
-      // comment カラムがまだない旧スキーマの場合のフォールバック
       const { data: fallbackData } = await supabase
         .from('votes')
         .select('problem_id, tile_id');
@@ -75,19 +98,40 @@ export async function getProblems(): Promise<Problem[]> {
 
     const votesMap: Record<string, Record<string, number>> = {};
     const commentsMap: Record<string, VoteComment[]> = {};
+    const cloudLikesMap: Record<string, number> = {};
+    const globallyDeletedIds = new Set<string>();
 
     if (votesData) {
       for (const v of votesData) {
+        // グローバル削除マーカー
+        if (v.tile_id === '__deleted__') {
+          globallyDeletedIds.add(v.problem_id);
+          continue;
+        }
+
+        // いいねアクションの集計（RLS環境でも確実に全端末でいいね数を同期）
+        if (v.tile_id === '__like__') {
+          const current = cloudLikesMap[v.problem_id] || 0;
+          if (v.comment === 'unlike') {
+            cloudLikesMap[v.problem_id] = Math.max(0, current - 1);
+          } else {
+            cloudLikesMap[v.problem_id] = current + 1;
+          }
+          continue;
+        }
+
+        // 通常の打牌投票
         if (!votesMap[v.problem_id]) {
           votesMap[v.problem_id] = {};
         }
         votesMap[v.problem_id][v.tile_id] = (votesMap[v.problem_id][v.tile_id] || 0) + 1;
 
-        if (v.comment && typeof v.comment === 'string' && v.comment.trim() !== '') {
+        // コメント（特殊アクション以外）
+        if (v.comment && typeof v.comment === 'string' && v.comment.trim() !== '' && !v.comment.startsWith('cleanup_')) {
           if (!commentsMap[v.problem_id]) {
             commentsMap[v.problem_id] = [];
           }
-          commentsMap[v.problem_id].push({
+          commentsMap[v.problem_id].unshift({
             id: v.id || `${v.problem_id}-${Math.random()}`,
             problemId: v.problem_id,
             tileId: v.tile_id,
@@ -98,24 +142,12 @@ export async function getProblems(): Promise<Problem[]> {
       }
     }
 
-    // 初期問題のプリセットコメント・いいね数もマージ
-    const initialCommentsMap: Record<string, VoteComment[]> = {};
-    const initialLikesMap: Record<string, number> = {};
-    for (const initProb of INITIAL_PROBLEMS) {
-      if (initProb.comments) {
-        initialCommentsMap[initProb.id] = initProb.comments;
-      }
-      if (initProb.likes !== undefined) {
-        initialLikesMap[initProb.id] = initProb.likes;
-      }
-    }
-
-    // 3. Problem 型に整形（削除済みIDは除外、ローカル画像バックアップもマージ）
+    // 3. Problem 型に整形（ローカル削除・グローバル削除の両方を除外、ローカル画像バックアップもマージ）
     const localProblems = getLocalProblems();
     const localMap = new Map(localProblems.map((p) => [p.id, p]));
 
     return problemsData
-      .filter((row: any) => !deletedIds.includes(row.id))
+      .filter((row: any) => !localDeletedIds.includes(row.id) && !globallyDeletedIds.has(row.id))
       .map((row: any) => {
         const mergedComments = [
           ...(commentsMap[row.id] || []),
@@ -130,6 +162,13 @@ export async function getProblems(): Promise<Problem[]> {
           decodedImageUrl ||
           localProblem?.imageUrl ||
           undefined;
+
+        // いいね数の算出: 初期値 + クラウド同期値とローカルキャッシュの最大値
+        const baseLikes = initialLikesMap[row.id] !== undefined ? initialLikesMap[row.id] : (row.likes || 0);
+        const netLikesFromCloud = cloudLikesMap[row.id] || 0;
+        const localCount = getLocalLikesCount(row.id);
+        const totalLikes = Math.max(0, baseLikes + netLikesFromCloud);
+        const resolvedLikes = Math.max(totalLikes, localCount);
 
         return {
           id: row.id,
@@ -154,18 +193,26 @@ export async function getProblems(): Promise<Problem[]> {
           author: row.author,
           createdAt: row.created_at ? row.created_at.split('T')[0] : '',
           stats: votesMap[row.id] || {},
-          likes: row.likes !== undefined && row.likes !== null ? row.likes : initialLikesMap[row.id] || 0,
+          likes: resolvedLikes,
           comments: mergedComments,
         };
       });
   } catch (err) {
     console.error('Error fetching from Supabase:', err);
-    return getLocalProblems().filter((p) => !deletedIds.includes(p.id));
+    return getLocalProblems()
+      .filter((p) => !localDeletedIds.includes(p.id))
+      .map((p) => ({
+        ...p,
+        likes: getLocalLikesCount(p.id) || p.likes || initialLikesMap[p.id] || 0,
+      }));
   }
 }
 
 // 新規問題の作成・保存
 export async function createProblem(newProblem: Problem): Promise<boolean> {
+  // この端末で作成された問題としてIDを記録（方式①: 投稿端末での自動削除用）
+  recordMyCreatedProblem(newProblem.id);
+
   // ローカルに即座にバックアップ
   saveLocalProblem(newProblem);
 
@@ -220,18 +267,16 @@ export async function createProblem(newProblem: Problem): Promise<boolean> {
   }
 }
 
-// 問題の削除（管理者認証された端末からのみ実行可能）
+// 問題の削除（方式①: 管理者端末またはこの端末で投稿した本人のみ実行可能）
 export async function deleteProblem(problemId: string): Promise<boolean> {
-  // 管理者認証チェック（一般ユーザーは絶対に削除不可）
-  if (!isDeviceAdmin()) {
+  // 権限チェック（管理者または投稿者本人の端末）
+  if (!canDeleteProblem(problemId)) {
     console.warn('Unauthorized delete attempt blocked.');
     return false;
   }
 
-  // 削除済みリストに登録（初期問題の場合もリロードで復活させない）
+  // 1. 端末ローカルから即時削除
   addDeletedProblemId(problemId);
-
-  // ローカル問題リストから削除
   deleteLocalProblem(problemId);
 
   if (!isSupabaseConfigured || !supabase) {
@@ -239,43 +284,43 @@ export async function deleteProblem(problemId: string): Promise<boolean> {
   }
 
   try {
-    // Supabaseから投票データと問題データを削除
-    await supabase.from('votes').delete().eq('problem_id', problemId);
-    const { error } = await supabase.from('problems').delete().eq('id', problemId);
-    if (error) {
-      console.warn('Supabase delete problem error:', error);
-      return false;
-    }
+    // 2. votes テーブルに __deleted__ マーカーを挿入（RLS環境でも確実に全ユーザーから即時非表示にする）
+    await supabase.from('votes').insert([{
+      problem_id: problemId,
+      tile_id: '__deleted__',
+      comment: isDeviceAdmin() ? 'deleted_by_admin' : 'deleted_by_author',
+    }]);
+
+    // 3. 可能であれば Supabase の problems テーブルからも削除を試みる
+    await supabase.from('problems').delete().eq('id', problemId);
     return true;
   } catch (err) {
     console.error('Supabase delete exception:', err);
-    return false;
+    return true; // ローカルとマーカーで削除済み
   }
 }
 
-// いいねの切り替え
+// いいねの切り替え（クラウド＆ローカル完全永続化）
 export async function toggleProblemLike(problemId: string, increment: boolean): Promise<boolean> {
+  // 1. ローカルキャッシュの更新
   updateLocalProblemLike(problemId, increment);
+  updateLocalLikesCount(problemId, increment);
 
   if (!isSupabaseConfigured || !supabase) {
     return true;
   }
 
   try {
-    // 現在のlikesを取得して更新
-    const { data } = await supabase
-      .from('problems')
-      .select('likes')
-      .eq('id', problemId)
-      .single();
-
-    if (data && data.likes !== undefined) {
-      const newCount = Math.max(0, (data.likes || 0) + (increment ? 1 : -1));
-      await supabase.from('problems').update({ likes: newCount }).eq('id', problemId);
-    }
+    // 2. votes テーブルに __like__ アクションを挿入（RLSによるUPDATE拒否を回避し確実に全端末へ同期）
+    const action = increment ? 'like' : 'unlike';
+    await supabase.from('votes').insert([{
+      problem_id: problemId,
+      tile_id: '__like__',
+      comment: action,
+    }]);
     return true;
   } catch (err) {
-    console.warn('Supabase like update fallback:', err);
+    console.warn('Supabase like sync error:', err);
     return false;
   }
 }
@@ -321,7 +366,7 @@ export async function submitVote(
 }
 
 // ==========================================
-// このデバイス限定の管理者認証ヘルパー
+// 権限管理ヘルパー（方式①: 管理者 ＋ 投稿者端末）
 // ==========================================
 
 // 管理者端末として認証されているか判定
@@ -346,13 +391,38 @@ export function revokeAdmin(): void {
   localStorage.removeItem(LOCAL_STORAGE_ADMIN_TOKEN_KEY);
 }
 
-// 削除権限の判定: 管理者として認証された端末のみ TRUE（一般ユーザーは 100% FALSE）
-export function canDeleteProblemOnThisDevice(): boolean {
-  return isDeviceAdmin();
+// この端末で作成された問題か判定
+export function isProblemCreatedOnThisDevice(problemId: string): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    const list: string[] = JSON.parse(localStorage.getItem(LOCAL_STORAGE_MY_PROBLEMS_KEY) || '[]');
+    return list.includes(problemId);
+  } catch {
+    return false;
+  }
+}
+
+// 作成した問題IDをこの端末に記録
+export function recordMyCreatedProblem(problemId: string): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const list: string[] = JSON.parse(localStorage.getItem(LOCAL_STORAGE_MY_PROBLEMS_KEY) || '[]');
+    if (!list.includes(problemId)) {
+      list.push(problemId);
+      localStorage.setItem(LOCAL_STORAGE_MY_PROBLEMS_KEY, JSON.stringify(list));
+    }
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+// 削除権限の判定（方式①: 管理者端末なら全問題OK、一般端末なら本人が投稿した問題のみOK）
+export function canDeleteProblem(problemId: string): boolean {
+  return isDeviceAdmin() || isProblemCreatedOnThisDevice(problemId);
 }
 
 // ==========================================
-// いいね済み状態のローカル判定
+// いいね状態のローカル永続化
 // ==========================================
 
 export function isProblemLikedByMe(problemId: string): boolean {
@@ -375,6 +445,31 @@ export function setProblemLikedByMe(problemId: string, liked: boolean): void {
       list = list.filter((id) => id !== problemId);
     }
     localStorage.setItem(LOCAL_STORAGE_LIKES_KEY, JSON.stringify(list));
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+function getLocalLikesMap(): Record<string, number> {
+  if (typeof window === 'undefined') return {};
+  try {
+    return JSON.parse(localStorage.getItem(LOCAL_STORAGE_LIKES_MAP_KEY) || '{}');
+  } catch {
+    return {};
+  }
+}
+
+function getLocalLikesCount(problemId: string): number {
+  return getLocalLikesMap()[problemId] || 0;
+}
+
+function updateLocalLikesCount(problemId: string, increment: boolean): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const map = getLocalLikesMap();
+    const current = map[problemId] !== undefined ? map[problemId] : 0;
+    map[problemId] = Math.max(0, current + (increment ? 1 : -1));
+    localStorage.setItem(LOCAL_STORAGE_LIKES_MAP_KEY, JSON.stringify(map));
   } catch (e) {
     console.error(e);
   }

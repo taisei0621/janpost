@@ -353,7 +353,7 @@ export default function Home() {
                 onVote={handleVote}
                 onLike={handleToggleLike}
                 onDelete={handleDeleteProblem}
-                canDelete={isAdmin}
+                canDelete={isAdmin ? true : undefined}
               />
             ))
           )}
