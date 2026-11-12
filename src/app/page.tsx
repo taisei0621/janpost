@@ -43,7 +43,6 @@ export default function Home() {
   useEffect(() => {
     loadData();
 
-    // URLシークレットパラメータによる管理者認証チェック (?admin=janpost777 または ?secret=janpost777)
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       const secret = params.get('admin') || params.get('secret');
@@ -137,12 +136,12 @@ export default function Home() {
         setIsAdmin(true);
         alert('管理者認証に成功しました。この端末限定で問題の削除が可能です。');
       } else {
-        alert('パスワードが違います。');
+        alert('パスワードが違いです。');
       }
     }
   };
 
-  // フィルタリング ＆ ソート（新着順・人気順・回答数順）
+  // フィルタリング ＆ ソート
   const processedProblems = useMemo(() => {
     const filtered = problems.filter((p) => {
       if (selectedFilter === 'all') return true;
@@ -163,12 +162,10 @@ export default function Home() {
         if (diff !== 0) return diff;
         return (b.createdAt || '').localeCompare(a.createdAt || '');
       }
-      // デフォルト: 新着順
       return (b.createdAt || '').localeCompare(a.createdAt || '');
     });
   }, [problems, selectedFilter, sortOrder]);
 
-  // 全体の総投票数を集計（ヘッダー等の表示用）
   const totalVotesAcrossAll = useMemo(() => {
     return problems.reduce((total, p) => {
       return total + Object.values(p.stats || {}).reduce((a, b) => a + b, 0);
@@ -176,42 +173,53 @@ export default function Home() {
   }, [problems]);
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-zinc-100 font-sans selection:bg-slate-200 dark:selection:bg-zinc-800">
-      {/* ナビゲーションバー */}
-      <header className="sticky top-0 z-40 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md border-b border-slate-200/80 dark:border-zinc-800/80 transition-colors">
+    <div className="min-h-screen bg-[#EAE4D7] text-[#262422]">
+      {/* 最上部：エアメール風のアクセントライン */}
+      <div className="w-full h-1.5 airmail-stripe border-b border-[#D5CEBE]" />
+
+      {/* レトロモダン郵便局ヘッダー */}
+      <header className="sticky top-0 z-40 bg-[#FBF9F4] border-b-2 border-[#C82C26] shadow-sm">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+          {/* 郵便局看板風ロゴ */}
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-950 flex items-center justify-center font-black text-base shadow-sm ring-1 ring-slate-900/10 dark:ring-white/20 select-none">
-              雀
+            <div className="relative w-9 h-9 rounded-xl bg-[#C82C26] text-white flex items-center justify-center font-black text-lg shadow-sm border border-[#961E1A] select-none">
+              <span className="font-serif">雀</span>
+              <span className="absolute -bottom-1 -right-1 text-[9px] bg-[#1E3A5F] text-[#FBF9F4] w-4 h-4 rounded-full flex items-center justify-center font-sans font-bold border border-white">
+                〒
+              </span>
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-base sm:text-lg font-extrabold tracking-tight text-slate-900 dark:text-zinc-100">
+                <h1 className="text-base sm:text-xl font-bold tracking-tight text-[#262422] font-serif flex items-center gap-1.5">
                   雀ポスト
+                  <span className="text-[11px] font-mono tracking-widest text-[#C82C26] uppercase font-bold">
+                    JANPOST
+                  </span>
                 </h1>
-                <span className="text-[10px] font-mono font-semibold tracking-wider text-slate-400 dark:text-zinc-500 uppercase px-1.5 py-0.5 rounded bg-slate-100 dark:bg-zinc-900 border border-slate-200/60 dark:border-zinc-800">
-                  JANPOST
-                </span>
               </div>
+              <p className="text-[10px] text-[#7A7265] hidden sm:block tracking-wider">
+                麻雀「何切る」郵便局・戦術投票所
+              </p>
             </div>
           </div>
 
+          {/* ヘッダー右側アクション */}
           <div className="flex items-center gap-2 sm:gap-3">
             {isSupabaseConfigured && (
-              <div className="hidden sm:inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 bg-emerald-50/80 dark:bg-emerald-950/40 dark:text-emerald-400 px-2.5 py-1 rounded-full border border-emerald-200/70 dark:border-emerald-800/60">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-[11px] font-medium tracking-tight">クラウド同期</span>
+              <div className="hidden sm:inline-flex items-center gap-1.5 text-xs text-[#1E3A5F] bg-[#E8EFF7] px-2.5 py-1 rounded-full border border-[#1E3A5F]/30 font-medium">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#1E3A5F] animate-pulse" />
+                <span className="text-[11px] font-mono tracking-tight">便箋同期中</span>
               </div>
             )}
 
             {/* 管理者モード切り替え */}
             {isAdmin ? (
-              <div className="flex items-center gap-1.5 bg-amber-50 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 text-xs px-2.5 py-1 rounded-lg border border-amber-200/80 dark:border-amber-800/80 shadow-xs">
-                <span className="text-[11px] font-bold">🛡️ 管理者</span>
+              <div className="flex items-center gap-1 bg-[#F5EEDB] text-[#8C6420] text-xs px-2.5 py-1 rounded-lg border border-[#D5C29A] shadow-xs">
+                <span className="text-[11px] font-bold">📮 局長権限</span>
                 <button
                   type="button"
                   onClick={handleAdminAuth}
-                  className="text-rose-600 hover:text-rose-700 dark:text-rose-400 ml-1 font-medium cursor-pointer text-[11px]"
+                  className="text-[#C82C26] hover:underline ml-1 font-bold cursor-pointer text-[11px]"
                   title="管理者モードを解除"
                 >
                   解除
@@ -221,61 +229,67 @@ export default function Home() {
               <button
                 type="button"
                 onClick={handleAdminAuth}
-                className="flex items-center gap-1.5 text-slate-500 hover:text-slate-800 dark:text-zinc-400 dark:hover:text-zinc-200 text-xs px-2.5 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-zinc-800/80 transition-colors cursor-pointer border border-transparent hover:border-slate-200 dark:hover:border-zinc-700"
+                className="flex items-center gap-1 text-[#7A7265] hover:text-[#262422] text-xs px-2 py-1.5 rounded-lg hover:bg-[#EAE4D7] transition-colors cursor-pointer border border-[#D5CEBE]"
                 title="管理者ログイン"
               >
-                <span className="text-xs opacity-75">🔑</span>
-                <span className="text-[11px] font-medium">管理者</span>
+                <span className="text-xs">🔑</span>
+                <span className="text-[11px] font-medium">局長</span>
               </button>
             )}
 
+            {/* 投函する（問題を作成）ボタン */}
             <button
               type="button"
               onClick={() => setIsModalOpen(true)}
-              className="inline-flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 active:scale-[0.98] text-white dark:bg-zinc-100 dark:text-zinc-950 dark:hover:bg-white text-xs font-semibold px-3.5 py-2 rounded-lg shadow-sm hover:shadow transition-all duration-150 cursor-pointer"
+              className="btn-postbox inline-flex items-center gap-1.5 text-xs font-bold px-3.5 sm:px-4 py-2 rounded-xl cursor-pointer select-none"
             >
-              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <path d="M12 5v14M5 12h14" />
-              </svg>
-              <span>問題を作成</span>
+              <span className="text-sm">📮</span>
+              <span>問題を投函する</span>
             </button>
           </div>
         </div>
       </header>
 
-      {/* ヒーローセクション */}
-      <section className="relative overflow-hidden bg-white dark:bg-zinc-900/60 border-b border-slate-200/80 dark:border-zinc-800/80 py-10 sm:py-12 px-4">
-        {/* 背景の微細な装飾 */}
-        <div className="absolute inset-0 bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] dark:bg-[radial-gradient(#27272a_1px,transparent_1px)] [background-size:16px_16px] [mask-image:radial-gradient(ellipse_50%_50%_at_50%_50%,#000_70%,transparent_100%)] pointer-events-none opacity-60" />
+      {/* ヒーローセクション（郵便ハガキの通信欄・切手モチーフ） */}
+      <section className="relative overflow-hidden py-9 sm:py-11 px-4 border-b border-[#D5CEBE] bg-[#F4EFE6]">
+        {/* 背景の郵便消印スタンプ装飾 */}
+        <div className="absolute -right-6 -bottom-6 w-36 h-36 rounded-full border-2 border-[#1E3A5F]/15 flex items-center justify-center pointer-events-none rotate-12">
+          <div className="w-28 h-28 rounded-full border border-[#1E3A5F]/15 flex flex-col items-center justify-center text-[10px] text-[#1E3A5F]/20 font-mono">
+            <span>JANPOST</span>
+            <span>2026.11.12</span>
+            <span>TOKYO</span>
+          </div>
+        </div>
 
         <div className="relative max-w-3xl mx-auto text-center space-y-3">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 text-[11px] font-medium text-slate-600 dark:text-zinc-300">
-            <span className="text-xs">🀄</span>
-            <span>麻雀「何切る」戦術分析プラットフォーム</span>
+          {/* 切手風のヘッダーバッジ */}
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#FBF9F4] border border-[#D5CEBE] text-[11px] font-medium text-[#7A7265] shadow-xs">
+            <span className="text-xs text-[#C82C26]">〒</span>
+            <span className="tracking-wide">手紙を投函するように問い、みんなの回答が届く場所</span>
           </div>
 
-          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 dark:text-zinc-50 tracking-tight leading-tight">
-            迷った一打を問う。<br className="hidden sm:inline" />
-            雀士の統計で解く。
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#262422] tracking-tight font-serif leading-tight">
+            迷った一打を投函する。<br className="hidden sm:inline" />
+            雀士の便箋で解く。
           </h2>
 
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-zinc-400 max-w-xl mx-auto leading-relaxed">
-            手牌や盤面状況から打牌を選択。全国の雀士による選択割合・打牌理由・実戦解説から最善手を見つけ出せます。
+          <p className="text-xs sm:text-sm text-[#5C5549] max-w-xl mx-auto leading-relaxed">
+            牌姿や対局写真をハガキとして投稿。全国の雀士たちから届く打牌割合・戦術理由・消印考察から、迷いなき最善手を見つけ出せます。
           </p>
 
-          <div className="flex items-center justify-center gap-6 pt-2 text-xs font-medium text-slate-500 dark:text-zinc-400 font-mono">
+          <div className="flex items-center justify-center gap-6 pt-2 text-xs font-medium text-[#7A7265] font-mono">
             <div className="flex items-center gap-1.5">
-              <span className="text-slate-900 dark:text-zinc-100 font-bold tabular-nums text-sm">
+              <span className="text-[#C82C26] font-bold tabular-nums text-sm">
                 {problems.length}
               </span>
-              <span>問登録</span>
+              <span>通の便箋</span>
             </div>
-            <span className="text-slate-300 dark:text-zinc-700">|</span>
+            <span className="text-[#D5CEBE]">|</span>
             <div className="flex items-center gap-1.5">
-              <span className="text-slate-900 dark:text-zinc-100 font-bold tabular-nums text-sm">
+              <span className="text-[#1E3A5F] font-bold tabular-nums text-sm">
                 {totalVotesAcrossAll.toLocaleString()}
               </span>
-              <span>回答集計</span>
+              <span>通の返信投票</span>
             </div>
           </div>
         </div>
@@ -283,20 +297,20 @@ export default function Home() {
 
       {/* メインコンテンツ */}
       <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
-        {/* レベル切り替えタブ（セグメントコントロール風デザイン） */}
+        {/* レトロな仕分け棚風フィルター */}
         <div className="w-full flex justify-center mb-6">
-          <div className="inline-flex p-1 rounded-xl bg-slate-200/80 dark:bg-zinc-800/90 border border-slate-200 dark:border-zinc-700/60 overflow-x-auto max-w-full">
+          <div className="inline-flex p-1.5 rounded-2xl bg-[#DCD5C6] border border-[#C5BDAA] overflow-x-auto max-w-full shadow-inner gap-1">
             <button
               type="button"
               onClick={() => setSelectedFilter('all')}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
                 selectedFilter === 'all'
-                  ? 'bg-white dark:bg-zinc-700 text-slate-900 dark:text-zinc-50 shadow-xs'
-                  : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-200'
+                  ? 'bg-[#FBF9F4] text-[#262422] shadow-sm border border-[#D5CEBE]'
+                  : 'text-[#5C5549] hover:text-[#262422]'
               }`}
             >
-              <span>すべて</span>
-              <span className="text-[10px] font-mono px-1 rounded bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400">
+              <span>📯 すべての便箋</span>
+              <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-[#EAE4D7] text-[#5C5549]">
                 {problems.length}
               </span>
             </button>
@@ -304,74 +318,74 @@ export default function Home() {
             <button
               type="button"
               onClick={() => setSelectedFilter('beginner')}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
                 selectedFilter === 'beginner'
-                  ? 'bg-white dark:bg-zinc-700 text-emerald-700 dark:text-emerald-400 shadow-xs'
-                  : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-200'
+                  ? 'bg-[#124D27] text-white shadow-sm'
+                  : 'text-[#5C5549] hover:text-[#262422]'
               }`}
             >
-              <span className="w-2 h-2 rounded-full bg-emerald-500" />
-              <span>初級 (受け入れ)</span>
+              <span className="w-2 h-2 rounded-full bg-emerald-400" />
+              <span>初級便（受け入れ）</span>
             </button>
 
             <button
               type="button"
               onClick={() => setSelectedFilter('intermediate')}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
                 selectedFilter === 'intermediate'
-                  ? 'bg-white dark:bg-zinc-700 text-sky-700 dark:text-sky-400 shadow-xs'
-                  : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-200'
+                  ? 'bg-[#1E3A5F] text-white shadow-sm'
+                  : 'text-[#5C5549] hover:text-[#262422]'
               }`}
             >
-              <span className="w-2 h-2 rounded-full bg-sky-500" />
-              <span>中級 (打点/速度)</span>
+              <span className="w-2 h-2 rounded-full bg-sky-300" />
+              <span>中級便（打点と速度）</span>
             </button>
 
             <button
               type="button"
               onClick={() => setSelectedFilter('advanced')}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
                 selectedFilter === 'advanced'
-                  ? 'bg-white dark:bg-zinc-700 text-indigo-700 dark:text-indigo-400 shadow-xs'
-                  : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-200'
+                  ? 'bg-[#5B2C6F] text-white shadow-sm'
+                  : 'text-[#5C5549] hover:text-[#262422]'
               }`}
             >
-              <span className="w-2 h-2 rounded-full bg-indigo-500" />
-              <span>上級 (状況判断)</span>
+              <span className="w-2 h-2 rounded-full bg-purple-300" />
+              <span>上級便（押し引き）</span>
             </button>
 
             <button
               type="button"
               onClick={() => setSelectedFilter('user')}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
                 selectedFilter === 'user'
-                  ? 'bg-white dark:bg-zinc-700 text-amber-700 dark:text-amber-400 shadow-xs'
-                  : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-200'
+                  ? 'bg-[#C82C26] text-white shadow-sm'
+                  : 'text-[#5C5549] hover:text-[#262422]'
               }`}
             >
-              <span className="w-2 h-2 rounded-full bg-amber-500" />
-              <span>ユーザー投稿</span>
+              <span>📮 雀士投稿便</span>
             </button>
           </div>
         </div>
 
-        {/* 並び替えコントローラー & 検索件数 */}
+        {/* 並び替えコントローラー & 消印件数 */}
         <div className="flex items-center justify-between gap-3 mb-6 px-1 text-xs">
           <div className="flex items-center gap-2">
-            <span className="font-semibold text-slate-800 dark:text-zinc-200 font-mono tabular-nums">
+            <span className="w-2 h-2 rounded-full bg-[#C82C26]" />
+            <span className="font-bold text-[#262422] font-mono tabular-nums">
               {processedProblems.length}
             </span>
-            <span className="text-slate-500 dark:text-zinc-400">件を表示中</span>
+            <span className="text-[#7A7265]">通の便箋を表示中</span>
           </div>
 
-          <div className="inline-flex items-center bg-slate-200/70 dark:bg-zinc-800/80 p-0.5 rounded-lg border border-slate-200 dark:border-zinc-700/60">
+          <div className="inline-flex items-center bg-[#DCD5C6] p-0.5 rounded-xl border border-[#C5BDAA]">
             <button
               type="button"
               onClick={() => setSortOrder('newest')}
-              className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all cursor-pointer ${
+              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                 sortOrder === 'newest'
-                  ? 'bg-white dark:bg-zinc-700 text-slate-900 dark:text-zinc-100 shadow-xs'
-                  : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-200'
+                  ? 'bg-[#FBF9F4] text-[#262422] shadow-xs'
+                  : 'text-[#5C5549] hover:text-[#262422]'
               }`}
             >
               新着順
@@ -379,10 +393,10 @@ export default function Home() {
             <button
               type="button"
               onClick={() => setSortOrder('popular')}
-              className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all cursor-pointer ${
+              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                 sortOrder === 'popular'
-                  ? 'bg-white dark:bg-zinc-700 text-slate-900 dark:text-zinc-100 shadow-xs'
-                  : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-200'
+                  ? 'bg-[#FBF9F4] text-[#262422] shadow-xs'
+                  : 'text-[#5C5549] hover:text-[#262422]'
               }`}
             >
               人気順
@@ -390,42 +404,42 @@ export default function Home() {
             <button
               type="button"
               onClick={() => setSortOrder('votes')}
-              className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all cursor-pointer ${
+              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                 sortOrder === 'votes'
-                  ? 'bg-white dark:bg-zinc-700 text-slate-900 dark:text-zinc-100 shadow-xs'
-                  : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-200'
+                  ? 'bg-[#FBF9F4] text-[#262422] shadow-xs'
+                  : 'text-[#5C5549] hover:text-[#262422]'
               }`}
             >
-              回答数順
+              返信数順
             </button>
           </div>
         </div>
 
-        {/* 問題一覧 */}
+        {/* 問題一覧（ハガキカードの連続） */}
         <div className="space-y-8 flex flex-col items-center">
           {isLoading ? (
             <div className="text-center py-20 space-y-3">
-              <div className="w-8 h-8 border-2 border-slate-900 dark:border-zinc-100 border-t-transparent rounded-full animate-spin mx-auto" />
-              <p className="text-xs text-slate-500 dark:text-zinc-400 font-medium">問題データを読み込み中...</p>
+              <div className="w-9 h-9 border-3 border-[#C82C26] border-t-transparent rounded-full animate-spin mx-auto" />
+              <p className="text-xs text-[#5C5549] font-medium">全国の郵便受けから集荷中...</p>
             </div>
           ) : processedProblems.length === 0 ? (
-            <div className="text-center py-16 px-4 bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 max-w-md w-full space-y-3 shadow-xs">
-              <div className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-zinc-800 flex items-center justify-center text-2xl mx-auto">
-                🀆
+            <div className="text-center py-16 px-6 postcard-paper rounded-2xl max-w-md w-full space-y-3">
+              <div className="w-14 h-14 rounded-2xl bg-[#EAE4D7] flex items-center justify-center text-3xl mx-auto border border-[#D5CEBE]">
+                📭
               </div>
-              <p className="text-sm font-semibold text-slate-800 dark:text-zinc-200">
-                該当する問題がまだありません
+              <p className="text-sm font-bold text-[#262422] font-serif">
+                この郵便受けにはまだ便箋がありません
               </p>
-              <p className="text-xs text-slate-500 dark:text-zinc-400">
-                新しい何切る問題を投稿してみませんか？
+              <p className="text-xs text-[#7A7265]">
+                あなたが一番最初の問題をポストに投函してみませんか？
               </p>
               <button
                 type="button"
                 onClick={() => setIsModalOpen(true)}
-                className="mt-2 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-slate-900 text-white dark:bg-zinc-100 dark:text-zinc-900 text-xs font-semibold shadow-xs hover:bg-slate-800 transition-colors cursor-pointer"
+                className="btn-postbox mt-2 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold cursor-pointer"
               >
-                <span>+</span>
-                <span>問題を作成する</span>
+                <span>📮</span>
+                <span>最初の問題を投函する</span>
               </button>
             </div>
           ) : (
@@ -443,20 +457,20 @@ export default function Home() {
         </div>
       </main>
 
-      {/* フッター */}
-      <footer className="mt-16 bg-white dark:bg-zinc-950 border-t border-slate-200/80 dark:border-zinc-800/80 py-10 text-center text-xs text-slate-500 dark:text-zinc-400 space-y-2">
+      {/* フッター（レトロな郵便局風） */}
+      <footer className="mt-16 bg-[#F4EFE6] border-t-2 border-[#C82C26] py-10 text-center text-xs text-[#5C5549] space-y-2">
         <div className="flex items-center justify-center gap-2">
-          <span className="w-5 h-5 rounded bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-950 flex items-center justify-center font-bold text-[10px]">
-            雀
-          </span>
-          <p className="font-bold text-slate-800 dark:text-zinc-200">
-            雀ポスト (JanPost)
+          <div className="w-5 h-5 rounded bg-[#C82C26] text-white flex items-center justify-center font-bold text-[10px] font-serif">
+            〒
+          </div>
+          <p className="font-bold text-[#262422] font-serif">
+            雀ポスト (JanPost) - レトロモダン麻雀何切る郵便局
           </p>
         </div>
-        <p className="text-[11px] text-slate-400 dark:text-zinc-500">
-          麻雀の何切る問題・戦術検討プラットフォーム
+        <p className="text-[11px] text-[#7A7265]">
+          手紙を投函するように何切る問題を投稿し、みんなの回答がハガキで届く場所
         </p>
-        <p className="text-slate-400 dark:text-zinc-600 pt-1">
+        <p className="text-[#7A7265] pt-1 font-mono text-[11px]">
           <button
             type="button"
             onClick={handleAdminAuth}
@@ -468,18 +482,18 @@ export default function Home() {
           All rights reserved.
         </p>
 
-        {/* 管理者端末認証中のみ表示 */}
+        {/* 管理者認証中 */}
         {isAdmin && (
           <div className="pt-2">
-            <span className="inline-flex items-center gap-1.5 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 px-3 py-1 rounded-full text-[11px] border border-amber-200/80 dark:border-amber-800/80">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              <span>管理者端末として認証中（全問題の削除が可能）</span>
+            <span className="inline-flex items-center gap-1.5 bg-[#F5EEDB] text-[#8C6420] px-3 py-1 rounded-full text-[11px] border border-[#D5C29A]">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#124D27]" />
+              <span>局長端末として認証中（全便箋の削除権限あり）</span>
               <button
                 type="button"
                 onClick={handleAdminAuth}
-                className="text-rose-600 hover:text-rose-700 ml-1 font-semibold underline cursor-pointer"
+                className="text-[#C82C26] hover:underline ml-1 font-bold cursor-pointer"
               >
-                ログアウト
+                退席
               </button>
             </span>
           </div>

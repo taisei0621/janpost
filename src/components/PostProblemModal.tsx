@@ -33,7 +33,6 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
   onClose,
   onAddProblem,
 }) => {
-  // 投稿モード: 手牌パレットで作成 or 写真・スクショで作成
   const [postMode, setPostMode] = useState<'tiles' | 'photo'>('tiles');
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [isCompressing, setIsCompressing] = useState(false);
@@ -109,15 +108,12 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
     }
   };
 
-  // 使用済み牌の全体リスト（ドラ最大5枚 + 手牌）
   const usedTilesInHandAndDora = [...doraList, ...hand];
 
-  // パレットの各牌が使用可能か判定（ドラ含め4枚制限、赤牌1枚制限）
   const checkTileAvailability = (tileId: string) => {
     return canAddTileValidation(usedTilesInHandAndDora, tileId);
   };
 
-  // 手牌に牌を追加（4枚制限バリデーション付き）
   const handleAddTile = (tileId: string) => {
     if (hand.length >= 14) return;
 
@@ -131,17 +127,14 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
     setHand(autoSort ? sortTiles(newHand) : newHand);
   };
 
-  // 手牌から牌を削除
   const handleRemoveTile = (indexToRemove: number) => {
     setHand((prev) => prev.filter((_, i) => i !== indexToRemove));
   };
 
-  // 手動理牌
   const handleSort = () => {
     setHand(sortTiles(hand));
   };
 
-  // 点数のクイック増減
   const handleAdjustScore = (w: '東家' | '南家' | '西家' | '北家', delta: number) => {
     setScores((prev) => ({
       ...prev,
@@ -149,7 +142,6 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
     }));
   };
 
-  // 捨て牌を追加
   const handleAddDiscardToRiver = (tileId: string) => {
     const isTsumogiri = discardMode === 'tsumogiri';
     const newTile: DiscardTile = {
@@ -162,7 +154,6 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
     }));
   };
 
-  // 捨て牌のツモ切り/手出しトグル
   const handleToggleDiscardTsumogiri = (index: number) => {
     setRiverDiscards((prev) => {
       const list = [...prev[activeRiverWind]];
@@ -174,7 +165,6 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
     });
   };
 
-  // 捨て牌のリーチ宣言牌トグル
   const handleToggleDiscardReach = (index: number) => {
     setRiverDiscards((prev) => {
       const list = [...prev[activeRiverWind]];
@@ -186,7 +176,6 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
     });
   };
 
-  // 捨て牌を1枚削除
   const handleRemoveDiscard = (index: number) => {
     setRiverDiscards((prev) => ({
       ...prev,
@@ -194,7 +183,6 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
     }));
   };
 
-  // 鳴きを追加
   const handleAddMeld = (windKey: '東家' | '南家' | '西家' | '北家') => {
     const promptVal = prompt('鳴いた牌を入力してください（例: 7z-7z-7z, 1m-2m-3m, 發ポン, 123p）:');
     if (promptVal && promptVal.trim()) {
@@ -205,7 +193,6 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
     }
   };
 
-  // プリセットから鳴きを追加
   const handleAddPresetMeld = (windKey: '東家' | '南家' | '西家' | '北家', meldCode: string) => {
     setRiverMelds((prev) => ({
       ...prev,
@@ -213,7 +200,6 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
     }));
   };
 
-  // 鳴きを削除
   const handleRemoveMeld = (windKey: '東家' | '南家' | '西家' | '北家', index: number) => {
     setRiverMelds((prev) => ({
       ...prev,
@@ -221,7 +207,6 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
     }));
   };
 
-  // 送信処理
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -295,7 +280,7 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
       },
       hand: postMode === 'tiles' ? sortTiles(hand) : hand,
       discards,
-      explanation: explanation || '投稿者による解説はありません。',
+      explanation: explanation || '出題者による解説はありません。',
       author: author || '名無しの雀士',
       createdAt: new Date().toISOString().split('T')[0],
       stats: {
@@ -308,7 +293,6 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
     onClose();
   };
 
-  // 各牌の残り枚数（ドラ含め4枚中、あと何枚使えるか）
   const getRemainingCount = (tileId: string) => {
     const isRed = tileId === '0m' || tileId === '0p' || tileId === '0s';
     if (isRed) {
@@ -319,36 +303,44 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-4 overflow-y-auto">
-      <div className="bg-white dark:bg-zinc-900 w-full max-w-3xl rounded-2xl shadow-2xl border border-slate-200 dark:border-zinc-800 p-5 sm:p-6 my-6 max-h-[92vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-3 sm:p-4 overflow-y-auto">
+      <div className="bg-[#FBF9F4] w-full max-w-3xl rounded-2xl shadow-2xl border-2 border-[#C82C26] p-5 sm:p-6 my-6 max-h-[92vh] overflow-y-auto relative">
+        {/* モーダル上部：エアメールのストライプ */}
+        <div className="absolute top-0 left-0 right-0 h-1.5 airmail-stripe rounded-t-2xl" />
+
         {/* モーダルヘッダー */}
-        <div className="flex items-center justify-between border-b pb-3.5 mb-4 dark:border-zinc-800">
+        <div className="flex items-center justify-between border-b border-[#D5CEBE] pb-3.5 mb-4 pt-1">
           <div className="flex items-center gap-2">
-            <span className="w-6 h-6 rounded-md bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-950 flex items-center justify-center font-bold text-xs">
-              +
+            <span className="w-7 h-7 rounded-lg bg-[#C82C26] text-white flex items-center justify-center font-bold text-sm font-serif shadow-xs">
+              〒
             </span>
-            <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-zinc-100">
-              何切る問題を投稿する
-            </h2>
+            <div>
+              <h2 className="text-base sm:text-lg font-bold text-[#262422] font-serif">
+                新しい何切る問題を投函する
+              </h2>
+              <p className="text-[10px] text-[#7A7265]">
+                牌姿や対局写真をハガキとして郵便ポストに投函します
+              </p>
+            </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 dark:hover:text-zinc-200 text-2xl font-bold leading-none cursor-pointer p-1"
+            className="text-[#7A7265] hover:text-[#C82C26] text-2xl font-bold leading-none cursor-pointer p-1"
           >
             &times;
           </button>
         </div>
 
-        {/* 投稿モード切り替えタブ */}
-        <div className="inline-flex w-full p-1 bg-slate-100 dark:bg-zinc-800 rounded-xl mb-4 gap-1 border border-slate-200/80 dark:border-zinc-700/60">
+        {/* 投稿方式切替（牌パレット vs 写真・スクショ） */}
+        <div className="inline-flex w-full p-1 bg-[#EAE4D7] rounded-xl mb-4 gap-1 border border-[#D5CEBE]">
           <button
             type="button"
             onClick={() => setPostMode('tiles')}
-            className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+            className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
               postMode === 'tiles'
-                ? 'bg-white dark:bg-zinc-700 text-slate-900 dark:text-zinc-100 shadow-2xs'
-                : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900'
+                ? 'bg-[#FBF9F4] text-[#262422] shadow-xs border border-[#D5CEBE]'
+                : 'text-[#5C5549] hover:text-[#262422]'
             }`}
           >
             <span>🀄 牌パレット入力</span>
@@ -356,10 +348,10 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
           <button
             type="button"
             onClick={() => setPostMode('photo')}
-            className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+            className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
               postMode === 'photo'
-                ? 'bg-white dark:bg-zinc-700 text-slate-900 dark:text-zinc-100 shadow-2xs'
-                : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900'
+                ? 'bg-[#FBF9F4] text-[#262422] shadow-xs border border-[#D5CEBE]'
+                : 'text-[#5C5549] hover:text-[#262422]'
             }`}
           >
             <span>📷 写真・スクショ投稿</span>
@@ -369,7 +361,7 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* 写真投稿モード時の画像アップロードUI */}
           {postMode === 'photo' && (
-            <div className="p-5 bg-blue-50/40 dark:bg-blue-950/20 border-2 border-dashed border-blue-200 dark:border-blue-900 rounded-2xl text-center space-y-3">
+            <div className="p-5 bg-[#F8F5EC] border-2 border-dashed border-[#1E3A5F]/40 rounded-2xl text-center space-y-3">
               <input
                 type="file"
                 ref={fileInputRef}
@@ -380,40 +372,40 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
 
               {uploadedImage ? (
                 <div className="space-y-2">
-                  <div className="relative max-h-64 overflow-hidden rounded-xl border border-slate-300 dark:border-zinc-700 mx-auto inline-block shadow-md">
+                  <div className="relative max-h-64 overflow-hidden rounded-xl border-2 border-[#D5CEBE] mx-auto inline-block shadow-md bg-white p-1">
                     <img
                       src={uploadedImage}
                       alt="投稿写真プレビュー"
-                      className="max-h-64 object-contain mx-auto"
+                      className="max-h-64 object-contain mx-auto rounded-lg"
                     />
                     <button
                       type="button"
                       onClick={() => setUploadedImage(null)}
-                      className="absolute top-2 right-2 bg-black/75 hover:bg-black text-white text-xs px-2.5 py-1 rounded-full cursor-pointer transition-colors shadow-sm"
+                      className="absolute top-2 right-2 bg-black/75 hover:bg-black text-white text-xs px-2.5 py-1 rounded-full cursor-pointer transition-colors shadow-sm font-serif"
                     >
                       写真を変更
                     </button>
                   </div>
-                  <p className="text-xs text-emerald-600 dark:text-emerald-400 font-bold">
+                  <p className="text-xs text-[#124D27] font-bold font-serif">
                     ✓ 写真の読み込みが完了しました（自動軽量化済み）
                   </p>
                 </div>
               ) : (
                 <div className="py-6 space-y-2">
-                  <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-300 flex items-center justify-center text-xl mx-auto">
+                  <div className="w-12 h-12 rounded-full bg-[#E8EFF7] text-[#1E3A5F] flex items-center justify-center text-xl mx-auto border border-[#1E3A5F]/20">
                     📷
                   </div>
-                  <div className="text-xs font-bold text-slate-800 dark:text-zinc-200">
+                  <div className="text-xs font-bold text-[#262422] font-serif">
                     対局画面のスクリーンショットや手牌の写真をアップロード
                   </div>
-                  <p className="text-[11px] text-slate-500 dark:text-zinc-400 max-w-sm mx-auto">
-                    雀魂、天鳳、Mリーグ、雀荘での写真など、1枚の画像で即座に出題できます
+                  <p className="text-[11px] text-[#7A7265] max-w-sm mx-auto">
+                    雀魂、天鳳、Mリーグ、雀荘での写真など、1枚の画像で即座に投函できます
                   </p>
                   <button
                     type="button"
                     disabled={isCompressing}
                     onClick={() => fileInputRef.current?.click()}
-                    className="mt-2 px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-xs transition-all cursor-pointer"
+                    className="btn-ink mt-2 px-5 py-2 text-xs font-bold rounded-xl cursor-pointer"
                   >
                     {isCompressing ? '写真を圧縮中...' : '写真・画像を選択する'}
                   </button>
@@ -425,47 +417,47 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
           {/* タイトルと難易度 */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="sm:col-span-2">
-              <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1">
-                問題タイトル
+              <label className="block text-xs font-bold text-[#262422] mb-1 font-serif">
+                便箋の件名（問題タイトル）
               </label>
               <input
                 type="text"
-                placeholder="例: オーラスの逆転手：打点 vs スピード"
+                placeholder="例: オーラス逆転の一打：打点 vs スピード"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="w-full text-xs p-2.5 rounded-xl border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="w-full text-xs p-2.5 rounded-xl border border-[#D5CEBE] bg-[#FBF9F4] text-[#262422] placeholder-[#A8A090] focus:outline-none focus:border-[#1E3A5F] focus:ring-1 focus:ring-[#1E3A5F] font-serif"
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1">
-                対象難易度
+              <label className="block text-xs font-bold text-[#262422] mb-1 font-serif">
+                便箋の種別（難易度）
               </label>
               <select
                 value={level}
                 onChange={(e) => setLevel(e.target.value as ProblemLevel)}
-                className="w-full text-xs p-2.5 rounded-xl border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="w-full text-xs p-2.5 rounded-xl border border-[#D5CEBE] bg-[#FBF9F4] text-[#262422] focus:outline-none focus:border-[#1E3A5F] focus:ring-1 focus:ring-[#1E3A5F] font-serif"
               >
-                <option value="beginner">初級（基本牌効率）</option>
-                <option value="intermediate">中級（手役・点差）</option>
-                <option value="advanced">上級（押し引き・状況判断）</option>
+                <option value="beginner">初級便（基本牌効率）</option>
+                <option value="intermediate">中級便（手役・点差）</option>
+                <option value="advanced">上級便（押し引き・状況判断）</option>
               </select>
             </div>
           </div>
 
           {/* 局況設定 */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 bg-slate-50 dark:bg-zinc-800/50 p-3 rounded-xl border border-slate-200/80 dark:border-zinc-800">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 bg-[#F8F5EC] p-3 rounded-xl border border-[#D5CEBE]">
             <div>
-              <label className="block text-[11px] font-bold text-slate-500 dark:text-zinc-400 mb-1">局</label>
+              <label className="block text-[11px] font-bold text-[#5C5549] mb-1 font-serif">局</label>
               <input
                 type="text"
                 value={round}
                 onChange={(e) => setRound(e.target.value)}
                 placeholder="東1局"
-                className="w-full text-xs p-2 rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 font-bold"
+                className="w-full text-xs p-2 rounded-lg border border-[#D5CEBE] bg-[#FBF9F4] font-bold font-serif text-[#262422]"
               />
             </div>
             <div>
-              <label className="block text-[11px] font-bold text-slate-500 dark:text-zinc-400 mb-1">本場</label>
+              <label className="block text-[11px] font-bold text-[#5C5549] mb-1 font-serif">本場</label>
               <div className="flex items-center gap-1">
                 <input
                   type="number"
@@ -473,28 +465,28 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
                   max={20}
                   value={honba}
                   onChange={(e) => setHonba(Math.max(0, Number(e.target.value)))}
-                  className="w-full text-xs p-2 rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 font-bold text-center font-mono"
+                  className="w-full text-xs p-2 rounded-lg border border-[#D5CEBE] bg-[#FBF9F4] font-bold text-center font-mono text-[#262422]"
                 />
-                <span className="text-xs text-slate-500 shrink-0 font-medium">本場</span>
+                <span className="text-xs text-[#7A7265] shrink-0 font-medium">本場</span>
               </div>
             </div>
             <div>
-              <label className="block text-[11px] font-bold text-slate-500 dark:text-zinc-400 mb-1">巡目</label>
+              <label className="block text-[11px] font-bold text-[#5C5549] mb-1 font-serif">巡目</label>
               <input
                 type="number"
                 min={1}
                 max={18}
                 value={turn}
                 onChange={(e) => setTurn(Number(e.target.value))}
-                className="w-full text-xs p-2 rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 font-bold text-center font-mono"
+                className="w-full text-xs p-2 rounded-lg border border-[#D5CEBE] bg-[#FBF9F4] font-bold text-center font-mono text-[#262422]"
               />
             </div>
             <div>
-              <label className="block text-[11px] font-bold text-slate-500 dark:text-zinc-400 mb-1">自家（自分）</label>
+              <label className="block text-[11px] font-bold text-[#5C5549] mb-1 font-serif">自家（自分）</label>
               <select
                 value={wind}
                 onChange={(e) => setWind(e.target.value as any)}
-                className="w-full text-xs p-2 rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 font-bold"
+                className="w-full text-xs p-2 rounded-lg border border-[#D5CEBE] bg-[#FBF9F4] font-bold font-serif text-[#262422]"
               >
                 <option value="東家">東家（親）</option>
                 <option value="南家">南家</option>
@@ -505,17 +497,17 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
           </div>
 
           {/* ドラ表示牌（最大5枚：表ドラ ＋ 槓ドラ） */}
-          <div className="bg-slate-50 dark:bg-zinc-800/50 p-3 rounded-xl border border-slate-200/80 dark:border-zinc-800 space-y-2">
+          <div className="bg-[#F8F5EC] p-3 rounded-xl border border-[#D5CEBE] space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-700 dark:text-zinc-300 flex items-center gap-1.5">
+              <span className="text-xs font-bold text-[#262422] flex items-center gap-1.5 font-serif">
                 <span>🀄 ドラ表示牌</span>
-                <span className="text-[10px] font-normal text-slate-400">（最大5枚・槓ドラ対応）</span>
+                <span className="text-[10px] font-normal text-[#7A7265]">（最大5枚・槓ドラ対応）</span>
               </span>
               {doraList.length < 5 && (
                 <button
                   type="button"
                   onClick={() => setDoraList((prev) => [...prev, '1m'])}
-                  className="text-xs text-blue-600 dark:text-blue-400 hover:underline font-bold flex items-center gap-1 cursor-pointer"
+                  className="text-xs text-[#1E3A5F] hover:underline font-bold flex items-center gap-1 cursor-pointer font-serif"
                 >
                   <span>+</span>
                   <span>ドラ追加（{doraList.length}/5）</span>
@@ -527,11 +519,11 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
               {doraList.map((dt, idx) => (
                 <div
                   key={`dora-slot-${idx}`}
-                  className="flex items-center gap-1.5 bg-white dark:bg-zinc-900 p-1.5 rounded-lg border border-slate-200 dark:border-zinc-700 shadow-2xs"
+                  className="flex items-center gap-1.5 bg-[#FBF9F4] p-1.5 rounded-lg border border-[#D5CEBE] shadow-xs"
                 >
                   <MahjongTile tileId={dt} size="sm" disabled />
                   <div className="flex flex-col gap-0.5">
-                    <span className="text-[9px] text-slate-500 font-bold">
+                    <span className="text-[9px] text-[#7A7265] font-bold font-serif">
                       {idx === 0 ? '表ドラ' : `槓ドラ${idx}`}
                     </span>
                     <select
@@ -541,7 +533,7 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
                         updated[idx] = e.target.value;
                         setDoraList(updated);
                       }}
-                      className="text-xs p-1 rounded border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 font-mono"
+                      className="text-xs p-1 rounded border border-[#D5CEBE] bg-[#FBF9F4] font-mono text-[#262422]"
                     >
                       {ALL_TILES.map((t) => (
                         <option key={`dora-opt-${idx}-${t}`} value={t}>
@@ -555,7 +547,7 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
                     <button
                       type="button"
                       onClick={() => setDoraList((prev) => prev.filter((_, i) => i !== idx))}
-                      className="text-slate-400 hover:text-rose-500 p-1 text-xs font-bold cursor-pointer transition-colors"
+                      className="text-[#7A7265] hover:text-[#C82C26] p-1 text-xs font-bold cursor-pointer transition-colors"
                       title="このドラ表示牌を削除"
                     >
                       ✕
@@ -566,36 +558,36 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
             </div>
           </div>
 
-          {/* 実戦状況の精密設定（点数状況タブ ＆ 河タブ） */}
-          <div className="border border-slate-200 dark:border-zinc-800 rounded-xl overflow-hidden bg-slate-50/50 dark:bg-zinc-800/30">
+          {/* 実戦状況の精密設定（各家の点数・河・鳴き） */}
+          <div className="border border-[#D5CEBE] rounded-xl overflow-hidden bg-[#F8F5EC]">
             <button
               type="button"
               onClick={() => setShowAdvancedContext(!showAdvancedContext)}
-              className="w-full px-3.5 py-2.5 text-xs font-bold flex items-center justify-between text-slate-700 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-zinc-800/60 transition-colors cursor-pointer"
+              className="w-full px-3.5 py-2.5 text-xs font-bold flex items-center justify-between text-[#262422] hover:bg-[#EAE4D7] transition-colors cursor-pointer font-serif"
             >
               <div className="flex items-center gap-2">
                 <span>📋</span>
-                <span className="text-slate-900 dark:text-zinc-100">
+                <span>
                   実戦状況の精密設定（各家の点数・河・鳴き）
                 </span>
-                <span className="text-[10px] text-slate-400 font-normal">（任意）</span>
+                <span className="text-[10px] text-[#7A7265] font-normal">（任意）</span>
               </div>
-              <span className="text-xs text-blue-600 dark:text-blue-400 font-semibold">
+              <span className="text-xs text-[#1E3A5F] font-bold">
                 {showAdvancedContext ? '▲ 閉じる' : '▼ 各家の点数・河を設定する'}
               </span>
             </button>
 
             {showAdvancedContext && (
-              <div className="p-3.5 space-y-3.5 border-t border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/80">
+              <div className="p-3.5 space-y-3.5 border-t border-[#D5CEBE] bg-[#FBF9F4]">
                 {/* サブタブ切替 */}
-                <div className="flex border-b border-slate-200 dark:border-zinc-800 pb-2 gap-2 text-xs font-bold">
+                <div className="flex border-b border-[#D5CEBE] pb-2 gap-2 text-xs font-bold font-serif">
                   <button
                     type="button"
                     onClick={() => setActiveContextSubTab('scores')}
                     className={`px-3 py-1.5 rounded-lg transition-colors cursor-pointer ${
                       activeContextSubTab === 'scores'
-                        ? 'bg-blue-600 text-white'
-                        : 'text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-800'
+                        ? 'bg-[#1E3A5F] text-white'
+                        : 'text-[#5C5549] hover:bg-[#EAE4D7]'
                     }`}
                   >
                     📊 各家の点数状況
@@ -605,8 +597,8 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
                     onClick={() => setActiveContextSubTab('river')}
                     className={`px-3 py-1.5 rounded-lg transition-colors cursor-pointer ${
                       activeContextSubTab === 'river'
-                        ? 'bg-blue-600 text-white'
-                        : 'text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-800'
+                        ? 'bg-[#1E3A5F] text-white'
+                        : 'text-[#5C5549] hover:bg-[#EAE4D7]'
                     }`}
                   >
                     🀁 各家の河（6枚×3段）・鳴き
@@ -616,8 +608,8 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
                     onClick={() => setActiveContextSubTab('note')}
                     className={`px-3 py-1.5 rounded-lg transition-colors cursor-pointer ${
                       activeContextSubTab === 'note'
-                        ? 'bg-blue-600 text-white'
-                        : 'text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-800'
+                        ? 'bg-[#1E3A5F] text-white'
+                        : 'text-[#5C5549] hover:bg-[#EAE4D7]'
                     }`}
                   >
                     📝 戦況補足メモ
@@ -627,7 +619,7 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
                 {/* 1. 各家の点数状況設定 */}
                 {activeContextSubTab === 'scores' && (
                   <div className="space-y-3">
-                    <p className="text-[11px] text-slate-500">
+                    <p className="text-[11px] text-[#7A7265] font-serif">
                       各家の持ち点を設定してください。自分の順位や点差が自動計算されます。
                     </p>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
@@ -639,16 +631,16 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
                             key={`score-${w}`}
                             className={`p-2.5 rounded-xl border ${
                               isSelf
-                                ? 'bg-blue-50/70 dark:bg-blue-950/40 border-blue-300 dark:border-blue-800'
-                                : 'bg-slate-50 dark:bg-zinc-800/60 border-slate-200 dark:border-zinc-700'
+                                ? 'bg-[#E8EFF7] border-[#1E3A5F]'
+                                : 'bg-[#F8F5EC] border-[#D5CEBE]'
                             }`}
                           >
                             <div className="flex items-center justify-between mb-1">
-                              <span className="text-xs font-bold text-slate-800 dark:text-zinc-200">
-                                {w} {isSelf && <span className="text-[10px] text-blue-600 font-bold">(自分)</span>}
+                              <span className="text-xs font-bold text-[#262422] font-serif">
+                                {w} {isSelf && <span className="text-[10px] text-[#1E3A5F] font-bold">(自分)</span>}
                               </span>
                               {!isSelf && (
-                                <span className={`text-[10px] font-mono ${scoreDiff >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                <span className={`text-[10px] font-mono ${scoreDiff >= 0 ? 'text-[#124D27]' : 'text-[#C82C26]'}`}>
                                   {scoreDiff >= 0 ? `+${scoreDiff.toLocaleString()}` : scoreDiff.toLocaleString()}
                                 </span>
                               )}
@@ -663,20 +655,20 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
                                   [w]: Number(e.target.value) || 0,
                                 }))
                               }
-                              className="w-full text-xs font-mono font-bold p-1.5 rounded border border-slate-300 dark:border-zinc-600 dark:bg-zinc-800"
+                              className="w-full text-xs font-mono font-bold p-1.5 rounded border border-[#D5CEBE] bg-[#FBF9F4] text-[#262422]"
                             />
                             <div className="flex gap-1 mt-1.5">
                               <button
                                 type="button"
                                 onClick={() => handleAdjustScore(w, 1000)}
-                                className="flex-1 text-[10px] bg-slate-200 dark:bg-zinc-700 hover:bg-slate-300 py-0.5 rounded cursor-pointer"
+                                className="flex-1 text-[10px] bg-[#EAE4D7] hover:bg-[#DCD5C6] py-0.5 rounded cursor-pointer font-mono"
                               >
                                 +1k
                               </button>
                               <button
                                 type="button"
                                 onClick={() => handleAdjustScore(w, -1000)}
-                                className="flex-1 text-[10px] bg-slate-200 dark:bg-zinc-700 hover:bg-slate-300 py-0.5 rounded cursor-pointer"
+                                className="flex-1 text-[10px] bg-[#EAE4D7] hover:bg-[#DCD5C6] py-0.5 rounded cursor-pointer font-mono"
                               >
                                 -1k
                               </button>
@@ -698,19 +690,19 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
                             key={`river-tab-${w}`}
                             type="button"
                             onClick={() => setActiveRiverWind(w)}
-                            className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                            className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer font-serif ${
                               activeRiverWind === w
-                                ? 'bg-slate-900 text-white dark:bg-white dark:text-zinc-900 shadow-2xs'
-                                : 'bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400'
+                                ? 'bg-[#1E3A5F] text-white shadow-xs'
+                                : 'bg-[#EAE4D7] text-[#5C5549]'
                             }`}
                           >
                             {w} {w === wind ? '(自分)' : ''}
-                            {riverReach[w] && <span className="ml-1 text-[9px] text-rose-500 font-bold">立直</span>}
+                            {riverReach[w] && <span className="ml-1 text-[9px] text-[#C82C26] font-bold">立直</span>}
                           </button>
                         ))}
                       </div>
 
-                      <label className="flex items-center gap-1.5 text-xs font-bold cursor-pointer text-rose-600">
+                      <label className="flex items-center gap-1.5 text-xs font-bold cursor-pointer text-[#C82C26] font-serif">
                         <input
                           type="checkbox"
                           checked={riverReach[activeRiverWind]}
@@ -720,23 +712,23 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
                               [activeRiverWind]: e.target.checked,
                             }))
                           }
-                          className="rounded text-rose-600"
+                          className="rounded text-[#C82C26]"
                         />
                         この家がリーチ中
                       </label>
                     </div>
 
                     {/* 捨て牌モード切替 */}
-                    <div className="flex items-center justify-between bg-slate-50 dark:bg-zinc-800/50 p-2 rounded-lg text-xs">
-                      <span className="text-slate-500 font-bold">打牌の属性:</span>
+                    <div className="flex items-center justify-between bg-[#F8F5EC] p-2 rounded-lg text-xs">
+                      <span className="text-[#5C5549] font-bold font-serif">打牌の属性:</span>
                       <div className="flex gap-2">
                         <button
                           type="button"
                           onClick={() => setDiscardMode('tedashi')}
                           className={`px-3 py-1 rounded-md font-bold transition-colors cursor-pointer ${
                             discardMode === 'tedashi'
-                              ? 'bg-amber-600 text-white'
-                              : 'bg-slate-200 dark:bg-zinc-700 text-slate-600 dark:text-zinc-300'
+                              ? 'bg-[#B8860B] text-white'
+                              : 'bg-[#EAE4D7] text-[#5C5549]'
                           }`}
                         >
                           ✋ 手出し
@@ -746,8 +738,8 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
                           onClick={() => setDiscardMode('tsumogiri')}
                           className={`px-3 py-1 rounded-md font-bold transition-colors cursor-pointer ${
                             discardMode === 'tsumogiri'
-                              ? 'bg-slate-800 text-white'
-                              : 'bg-slate-200 dark:bg-zinc-700 text-slate-600 dark:text-zinc-300'
+                              ? 'bg-[#1E3A5F] text-white'
+                              : 'bg-[#EAE4D7] text-[#5C5549]'
                           }`}
                         >
                           🔄 ツモ切り
@@ -755,7 +747,7 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
                       </div>
                     </div>
 
-                    {/* 河コンポーネント */}
+                    {/* 河コンポーネント（※変更禁止エリア） */}
                     <MahjongRiver
                       discards={riverDiscards[activeRiverWind]}
                       melds={riverMelds[activeRiverWind]}
@@ -769,16 +761,16 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
                     />
 
                     {/* 鳴き牌（副露）設定 */}
-                    <div className="bg-slate-50 dark:bg-zinc-800/50 p-2.5 rounded-xl border border-slate-200 dark:border-zinc-750 space-y-2">
+                    <div className="bg-[#F8F5EC] p-2.5 rounded-xl border border-[#D5CEBE] space-y-2">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <span className="text-xs font-bold text-slate-700 dark:text-zinc-300">
+                          <span className="text-xs font-bold text-[#262422] font-serif">
                             鳴き牌（副露）:
                           </span>
                           {riverMelds[activeRiverWind].length === 0 ? (
-                            <span className="text-xs text-slate-400">なし（門前）</span>
+                            <span className="text-xs text-[#7A7265]">なし（門前）</span>
                           ) : (
-                            <span className="text-xs text-amber-600 dark:text-amber-400 font-bold">
+                            <span className="text-xs text-[#1E3A5F] font-bold">
                               {riverMelds[activeRiverWind].length}件登録中
                             </span>
                           )}
@@ -786,15 +778,15 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
                         <button
                           type="button"
                           onClick={() => handleAddMeld(activeRiverWind)}
-                          className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+                          className="text-xs font-bold text-[#1E3A5F] hover:underline cursor-pointer font-serif"
                         >
                           + 自由入力で追加
                         </button>
                       </div>
 
                       {/* クイック役牌ポン・チーボタン */}
-                      <div className="flex flex-wrap items-center gap-1.5 pt-1.5 border-t border-slate-200 dark:border-zinc-700/50">
-                        <span className="text-[10px] text-slate-500 font-medium">クイック追加:</span>
+                      <div className="flex flex-wrap items-center gap-1.5 pt-1.5 border-t border-[#D5CEBE]">
+                        <span className="text-[10px] text-[#7A7265] font-serif">クイック追加:</span>
                         {[
                           { label: '中ポン', code: '7z-7z-7z' },
                           { label: '發ポン', code: '6z-6z-6z' },
@@ -808,7 +800,7 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
                             key={`quick-meld-${m.label}`}
                             type="button"
                             onClick={() => handleAddPresetMeld(activeRiverWind, m.code)}
-                            className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 dark:hover:bg-amber-900/50 text-amber-900 dark:text-amber-200 border border-amber-300 dark:border-amber-800 transition-colors cursor-pointer"
+                            className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#FBF9F4] text-[#262422] border border-[#D5CEBE] hover:border-[#1E3A5F] transition-colors cursor-pointer"
                           >
                             + {m.label}
                           </button>
@@ -818,16 +810,16 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
 
                     {/* 河用クイック追加パレット */}
                     <div className="pt-1">
-                      <span className="text-[11px] font-bold text-slate-500 mb-1 block">
+                      <span className="text-[11px] font-bold text-[#5C5549] mb-1 block font-serif">
                         河に追加する牌をタップ（{discardMode === 'tsumogiri' ? '🔄 ツモ切り' : '✋ 手出し'}）:
                       </span>
-                      <div className="flex flex-wrap gap-1 p-2 bg-slate-50 dark:bg-zinc-800/40 rounded-lg max-h-24 overflow-y-auto">
+                      <div className="flex flex-wrap gap-1 p-2 bg-[#EAE4D7] rounded-lg max-h-24 overflow-y-auto">
                         {ALL_TILES.map((t) => (
                           <button
                             key={`quick-river-${t}`}
                             type="button"
                             onClick={() => handleAddDiscardToRiver(t)}
-                            className="px-1.5 py-0.5 text-[10px] font-bold bg-white dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded hover:border-blue-500 cursor-pointer"
+                            className="px-1.5 py-0.5 text-[10px] font-bold bg-[#FBF9F4] border border-[#D5CEBE] rounded hover:border-[#1E3A5F] cursor-pointer"
                           >
                             {getTileDisplay(t).topText}{getTileDisplay(t).bottomText}
                           </button>
@@ -840,7 +832,7 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
                 {/* 3. 戦況補足メモ */}
                 {activeContextSubTab === 'note' && (
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-600 dark:text-zinc-400 mb-1">
+                    <label className="block text-[11px] font-bold text-[#5C5549] mb-1 font-serif">
                       戦況メモ（例: 対面が早めの萬子染め手、上家は安牌を手出し中）
                     </label>
                     <textarea
@@ -848,7 +840,7 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
                       placeholder="特筆すべき他家の動きや場の警戒事項を入力してください"
                       value={note}
                       onChange={(e) => setNote(e.target.value)}
-                      className="w-full text-xs p-2.5 rounded-xl border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      className="w-full text-xs p-2.5 rounded-xl border border-[#D5CEBE] bg-[#FBF9F4] text-[#262422] focus:outline-none focus:border-[#1E3A5F] focus:ring-1 focus:ring-[#1E3A5F] font-serif"
                     />
                   </div>
                 )}
@@ -863,16 +855,16 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <label className="text-xs font-bold text-slate-700 dark:text-zinc-300">
+                    <label className="text-xs font-bold text-[#262422] font-serif">
                       選択した手牌 ({hand.length} / 14枚)
                     </label>
-                    <span className="text-[10px] text-slate-400">※タップで削除</span>
+                    <span className="text-[10px] text-[#7A7265]">※タップで削除</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
                       onClick={handleSort}
-                      className="text-xs text-blue-600 dark:text-blue-400 font-bold hover:underline cursor-pointer"
+                      className="text-xs text-[#1E3A5F] font-bold hover:underline cursor-pointer font-serif"
                     >
                       🔄 理牌する
                     </button>
@@ -880,7 +872,7 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
                       <button
                         type="button"
                         onClick={() => setHand([])}
-                        className="text-xs text-rose-500 hover:underline cursor-pointer"
+                        className="text-xs text-[#C82C26] hover:underline cursor-pointer font-serif"
                       >
                         全消去
                       </button>
@@ -888,9 +880,9 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
                   </div>
                 </div>
 
-                <div className="min-h-16 pt-3 pb-2.5 px-3 bg-slate-100/80 dark:bg-zinc-800 rounded-xl flex items-center justify-start gap-1 overflow-x-auto border-2 border-dashed border-slate-300 dark:border-zinc-700">
+                <div className="min-h-16 pt-3 pb-2.5 px-3 bg-[#EAE4D7] rounded-xl flex items-center justify-start gap-1 overflow-x-auto border-2 border-dashed border-[#D5CEBE]">
                   {hand.length === 0 ? (
-                    <span className="text-xs text-slate-400 mx-auto py-3">
+                    <span className="text-xs text-[#7A7265] mx-auto py-3 font-serif">
                       下のパレットから牌をタップして14枚選んでください（ドラ含め同牌4枚まで）
                     </span>
                   ) : (
@@ -909,20 +901,20 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
               </div>
 
               {/* 牌パレット */}
-              <div className="bg-slate-50 dark:bg-zinc-800/60 p-3 rounded-xl border border-slate-200 dark:border-zinc-700/60 space-y-2">
+              <div className="bg-[#F8F5EC] p-3 rounded-xl border border-[#D5CEBE] space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-bold text-slate-700 dark:text-zinc-300">
+                    <span className="text-xs font-bold text-[#262422] font-serif">
                       牌パレット（クリックで手牌に追加）
                     </span>
-                    <span className="text-[10px] text-slate-400">※ドラ表示牌を含め最大4枚まで</span>
+                    <span className="text-[10px] text-[#7A7265]">※ドラ表示牌を含め最大4枚まで</span>
                   </div>
-                  <label className="flex items-center gap-1.5 text-[11px] text-slate-500 cursor-pointer">
+                  <label className="flex items-center gap-1.5 text-[11px] text-[#5C5549] cursor-pointer font-serif">
                     <input
                       type="checkbox"
                       checked={autoSort}
                       onChange={(e) => setAutoSort(e.target.checked)}
-                      className="rounded text-blue-600"
+                      className="rounded text-[#1E3A5F]"
                     />
                     自動理牌
                   </label>
@@ -931,7 +923,7 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
                 <div className="space-y-1.5">
                   {/* 萬子 */}
                   <div className="flex items-center gap-1 overflow-x-auto pb-1">
-                    <span className="text-[10px] font-bold text-rose-600 w-5 shrink-0">萬</span>
+                    <span className="text-[10px] font-bold text-[#C82C26] w-5 shrink-0 font-serif">萬</span>
                     <div className="flex gap-1">
                       {MAN_TILES.map((t) => {
                         const remaining = getRemainingCount(t);
@@ -948,7 +940,7 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
                             {remaining <= 1 && (
                               <span
                                 className={`absolute -top-1 -right-1 text-[8px] font-bold px-1 rounded-full ${
-                                  remaining === 0 ? 'bg-zinc-400 text-white' : 'bg-amber-500 text-white'
+                                  remaining === 0 ? 'bg-zinc-400 text-white' : 'bg-amber-600 text-white'
                                 }`}
                               >
                                 残{remaining}
@@ -962,7 +954,7 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
 
                   {/* 筒子 */}
                   <div className="flex items-center gap-1 overflow-x-auto pb-1">
-                    <span className="text-[10px] font-bold text-blue-600 w-5 shrink-0">筒</span>
+                    <span className="text-[10px] font-bold text-[#1E3A5F] w-5 shrink-0 font-serif">筒</span>
                     <div className="flex gap-1">
                       {PIN_TILES.map((t) => {
                         const remaining = getRemainingCount(t);
@@ -979,7 +971,7 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
                             {remaining <= 1 && (
                               <span
                                 className={`absolute -top-1 -right-1 text-[8px] font-bold px-1 rounded-full ${
-                                  remaining === 0 ? 'bg-zinc-400 text-white' : 'bg-amber-500 text-white'
+                                  remaining === 0 ? 'bg-zinc-400 text-white' : 'bg-amber-600 text-white'
                                 }`}
                               >
                                 残{remaining}
@@ -993,7 +985,7 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
 
                   {/* 索子 */}
                   <div className="flex items-center gap-1 overflow-x-auto pb-1">
-                    <span className="text-[10px] font-bold text-emerald-600 w-5 shrink-0">索</span>
+                    <span className="text-[10px] font-bold text-[#124D27] w-5 shrink-0 font-serif">索</span>
                     <div className="flex gap-1">
                       {SOU_TILES.map((t) => {
                         const remaining = getRemainingCount(t);
@@ -1010,7 +1002,7 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
                             {remaining <= 1 && (
                               <span
                                 className={`absolute -top-1 -right-1 text-[8px] font-bold px-1 rounded-full ${
-                                  remaining === 0 ? 'bg-zinc-400 text-white' : 'bg-amber-500 text-white'
+                                  remaining === 0 ? 'bg-zinc-400 text-white' : 'bg-amber-600 text-white'
                                 }`}
                               >
                                 残{remaining}
@@ -1024,7 +1016,7 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
 
                   {/* 字牌 */}
                   <div className="flex items-center gap-1 overflow-x-auto pb-1">
-                    <span className="text-[10px] font-bold text-slate-600 dark:text-zinc-300 w-5 shrink-0">字</span>
+                    <span className="text-[10px] font-bold text-[#262422] w-5 shrink-0 font-serif">字</span>
                     <div className="flex gap-1">
                       {ZI_TILES.map((t) => {
                         const remaining = getRemainingCount(t);
@@ -1041,7 +1033,7 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
                             {remaining <= 1 && (
                               <span
                                 className={`absolute -top-1 -right-1 text-[8px] font-bold px-1 rounded-full ${
-                                  remaining === 0 ? 'bg-zinc-400 text-white' : 'bg-amber-500 text-white'
+                                  remaining === 0 ? 'bg-zinc-400 text-white' : 'bg-amber-600 text-white'
                                 }`}
                               >
                                 残{remaining}
@@ -1058,14 +1050,14 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
           )}
 
           {/* 正解の打牌設定 */}
-          <div className="bg-slate-50 dark:bg-zinc-800/50 p-3.5 rounded-xl border border-slate-200/80 dark:border-zinc-800 space-y-2.5">
-            <label className="block text-xs font-bold text-slate-800 dark:text-zinc-200">
-              正解（出題者が推奨する本命打牌）
+          <div className="bg-[#F8F5EC] p-3.5 rounded-xl border border-[#D5CEBE] space-y-2.5">
+            <label className="block text-xs font-bold text-[#262422] font-serif">
+              本命の打牌（出題者が推奨する正解）
             </label>
 
             {postMode === 'tiles' ? (
               hand.length === 0 ? (
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-[#7A7265] font-serif">
                   先に上のパレットから手牌を選んでください
                 </p>
               ) : (
@@ -1080,8 +1072,8 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
                         onClick={() => setBestDiscard(tId)}
                         className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer border ${
                           isSelected
-                            ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs scale-105'
-                            : 'bg-white dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 border-slate-200 dark:border-zinc-700 hover:border-emerald-400'
+                            ? 'bg-[#124D27] text-white border-[#124D27] shadow-xs scale-105'
+                            : 'bg-[#FBF9F4] text-[#262422] border-[#D5CEBE] hover:border-[#124D27]'
                         }`}
                       >
                         <span className={disp.suitColor}>{disp.topText}</span>
@@ -1093,10 +1085,10 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
               )
             ) : (
               <div>
-                <p className="text-[11px] text-slate-500 mb-1.5">
+                <p className="text-[11px] text-[#7A7265] mb-1.5 font-serif">
                   写真の中の手牌から、正解とする打牌を選択してください:
                 </p>
-                <div className="flex flex-wrap gap-1 max-h-28 overflow-y-auto p-1.5 bg-white dark:bg-zinc-900 rounded-lg border border-slate-200 dark:border-zinc-700">
+                <div className="flex flex-wrap gap-1 max-h-28 overflow-y-auto p-1.5 bg-[#FBF9F4] rounded-lg border border-[#D5CEBE]">
                   {ALL_TILES.map((tId) => {
                     const isSelected = bestDiscard === tId;
                     const disp = getTileDisplay(tId);
@@ -1107,8 +1099,8 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
                         onClick={() => setBestDiscard(tId)}
                         className={`px-2 py-1 rounded text-xs font-bold border transition-all cursor-pointer ${
                           isSelected
-                            ? 'bg-emerald-600 text-white border-emerald-600 scale-105 shadow-2xs'
-                            : 'bg-slate-50 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 border-slate-200 dark:border-zinc-700'
+                            ? 'bg-[#124D27] text-white border-[#124D27] scale-105 shadow-xs'
+                            : 'bg-[#F8F5EC] text-[#262422] border-[#D5CEBE]'
                         }`}
                       >
                         <span className={disp.suitColor}>{disp.topText}</span>
@@ -1121,7 +1113,7 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
             )}
 
             <div>
-              <label className="block text-[11px] font-bold text-slate-500 dark:text-zinc-400 mb-1">
+              <label className="block text-[11px] font-bold text-[#5C5549] mb-1 font-serif">
                 本命打牌のひとこと理由
               </label>
               <input
@@ -1129,54 +1121,55 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
                 placeholder="例: 最大受け入れの28枚、手変わりでピンフ一盃口"
                 value={bestReason}
                 onChange={(e) => setBestReason(e.target.value)}
-                className="w-full text-xs p-2 rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="w-full text-xs p-2 rounded-lg border border-[#D5CEBE] bg-[#FBF9F4] text-[#262422] placeholder-[#A8A090] focus:outline-none focus:border-[#1E3A5F] focus:ring-1 focus:ring-[#1E3A5F] font-serif"
               />
             </div>
           </div>
 
-          {/* 解説と出題者名 */}
+          {/* 解説と差出人名 */}
           <div className="space-y-3">
             <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1">
-                詳しい戦術解説
+              <label className="block text-xs font-bold text-[#262422] mb-1 font-serif">
+                戦術解説文
               </label>
               <textarea
                 rows={3}
-                placeholder="他の打牌との比較や、巡目・点差を踏まえた戦術的な解説を入力してください"
+                placeholder="他の打牌との比較や、巡目・点差を踏まえた戦術的な解説文を入力してください"
                 value={explanation}
                 onChange={(e) => setExplanation(e.target.value)}
-                className="w-full text-xs p-2.5 rounded-xl border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="w-full text-xs p-2.5 rounded-xl border border-[#D5CEBE] bg-[#FBF9F4] text-[#262422] placeholder-[#A8A090] focus:outline-none focus:border-[#1E3A5F] focus:ring-1 focus:ring-[#1E3A5F] font-serif"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1">
-                出題者のお名前（ペンネーム）
+              <label className="block text-xs font-bold text-[#262422] mb-1 font-serif">
+                差出人の記名（ペンネーム）
               </label>
               <input
                 type="text"
                 placeholder="名無しの雀士"
                 value={author}
                 onChange={(e) => setAuthor(e.target.value)}
-                className="w-full text-xs p-2 rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="w-full text-xs p-2 rounded-lg border border-[#D5CEBE] bg-[#FBF9F4] text-[#262422] placeholder-[#A8A090] focus:outline-none focus:border-[#1E3A5F] focus:ring-1 focus:ring-[#1E3A5F] font-serif"
               />
             </div>
           </div>
 
-          {/* フッターアクションボタン */}
-          <div className="pt-3 border-t border-slate-200 dark:border-zinc-800 flex items-center justify-end gap-2.5">
+          {/* アクションボタン */}
+          <div className="pt-3 border-t border-[#D5CEBE] flex items-center justify-end gap-2.5">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-xs font-semibold rounded-xl text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+              className="px-4 py-2 text-xs font-semibold rounded-xl text-[#7A7265] hover:bg-[#EAE4D7] transition-colors cursor-pointer font-serif"
             >
               キャンセル
             </button>
             <button
               type="submit"
-              className="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 active:scale-[0.98] text-white dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white text-xs font-bold rounded-xl shadow-sm transition-all cursor-pointer"
+              className="btn-postbox px-6 py-2.5 text-xs font-bold rounded-xl cursor-pointer flex items-center gap-1.5"
             >
-              この内容で問題を公開する
+              <span>📮</span>
+              <span>この内容でポストに投函する</span>
             </button>
           </div>
         </form>

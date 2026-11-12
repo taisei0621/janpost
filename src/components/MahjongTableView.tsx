@@ -187,14 +187,14 @@ export const MahjongTableView: React.FC<MahjongTableViewProps> = ({ problem }) =
   };
 
   return (
-    <div className="w-full bg-white dark:bg-zinc-900 rounded-xl border border-slate-200 dark:border-zinc-800 p-2 sm:p-4 space-y-3 shadow-2xs">
+    <div className="w-full bg-[#FBF9F4] rounded-xl border border-[#D5CEBE] p-2 sm:p-4 space-y-3 shadow-xs">
       {/* 盤面ヘッダー */}
-      <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 dark:border-zinc-800">
+      <div className="flex items-center justify-between pb-2.5 border-b border-[#EAE4D7]">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-bold text-slate-900 dark:text-zinc-100">
+          <span className="text-xs font-bold text-[#262422] font-serif">
             対局盤面
           </span>
-          <span className="text-[11px] text-slate-500 font-mono">
+          <span className="text-[11px] text-[#5C5549] font-mono">
             {problem.context.round}
             {problem.context.honba && problem.context.honba > 0 ? ` ${problem.context.honba}本場` : ''}
             {' '}{problem.context.turn}巡目
@@ -202,14 +202,14 @@ export const MahjongTableView: React.FC<MahjongTableViewProps> = ({ problem }) =
         </div>
 
         {/* 表示モード切替 */}
-        <div className="inline-flex bg-slate-100 dark:bg-zinc-800 p-0.5 rounded-lg text-xs border border-slate-200 dark:border-zinc-700/60">
+        <div className="inline-flex bg-[#EAE4D7] p-0.5 rounded-lg text-xs border border-[#D5CEBE]">
           <button
             type="button"
             onClick={() => setViewMode('table')}
-            className={`px-2.5 py-1 rounded-md text-xs font-medium cursor-pointer transition-all ${
+            className={`px-2.5 py-1 rounded-md text-xs font-bold cursor-pointer transition-all ${
               viewMode === 'table'
-                ? 'bg-white dark:bg-zinc-700 text-slate-900 dark:text-zinc-100 shadow-2xs'
-                : 'text-slate-500 hover:text-slate-900 dark:hover:text-zinc-200'
+                ? 'bg-[#FBF9F4] text-[#262422] shadow-xs'
+                : 'text-[#5C5549] hover:text-[#262422]'
             }`}
           >
             卓上配置
@@ -217,10 +217,10 @@ export const MahjongTableView: React.FC<MahjongTableViewProps> = ({ problem }) =
           <button
             type="button"
             onClick={() => setViewMode('list')}
-            className={`px-2.5 py-1 rounded-md text-xs font-medium cursor-pointer transition-all ${
+            className={`px-2.5 py-1 rounded-md text-xs font-bold cursor-pointer transition-all ${
               viewMode === 'list'
-                ? 'bg-white dark:bg-zinc-700 text-slate-900 dark:text-zinc-100 shadow-2xs'
-                : 'text-slate-500 hover:text-slate-900 dark:hover:text-zinc-200'
+                ? 'bg-[#FBF9F4] text-[#262422] shadow-xs'
+                : 'text-[#5C5549] hover:text-[#262422]'
             }`}
           >
             一覧表示
@@ -310,8 +310,8 @@ export const MahjongTableView: React.FC<MahjongTableViewProps> = ({ problem }) =
               key={`list-${seat.wind}`}
               className={`p-3 rounded-xl border ${
                 seat.isSelf
-                  ? 'bg-blue-50/50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900/60 shadow-2xs'
-                  : 'bg-slate-50 dark:bg-zinc-850/60 border-slate-200 dark:border-zinc-800'
+                  ? 'bg-[#E8EFF7] border-[#1E3A5F] shadow-xs'
+                  : 'bg-[#F8F5EC] border-[#D5CEBE]'
               }`}
             >
               {renderBoardRiver(seat)}
