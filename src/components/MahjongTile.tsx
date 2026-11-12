@@ -65,28 +65,28 @@ export const MahjongTile: React.FC<MahjongTileProps> = ({
   return (
     <div
       className={`relative inline-flex items-center justify-center select-none transition-transform ${
-        size === 'xs' ? 'pt-1' : 'pt-3'
+        size === 'xs' ? 'pt-1' : 'pt-3.5'
       } ${
         isTsumo ? 'ml-2 sm:ml-4' : ''
       }`}
     >
       {/* バッジ表示（正解・残り枚数など） */}
       {badge && (
-        <span className="absolute top-0 left-1/2 -translate-x-1/2 z-20 whitespace-nowrap px-1.5 py-0.5 text-[9px] font-black rounded-full bg-amber-500 text-white shadow-md animate-bounce ring-1 ring-white/80 pointer-events-none">
+        <span className="absolute top-0.5 left-1/2 -translate-x-1/2 z-20 whitespace-nowrap px-1.5 py-0.5 text-[9px] font-bold rounded-full bg-emerald-600 text-white shadow-sm ring-1 ring-white/90 pointer-events-none tracking-tight">
           {badge}
         </span>
       )}
 
       {/* ツモラベル（見切れ防止でトップ余白内に確実に配置） */}
       {showTsumoLabel && isTsumo && (
-        <span className="absolute top-0 left-1/2 -translate-x-1/2 z-20 whitespace-nowrap px-1.5 py-0.2 text-[9px] font-black rounded-full bg-blue-600 text-white shadow-sm ring-1 ring-white/80 pointer-events-none tracking-wider">
+        <span className="absolute top-0.5 left-1/2 -translate-x-1/2 z-20 whitespace-nowrap px-1.5 py-0.5 text-[9px] font-bold rounded-md bg-zinc-900/90 text-white dark:bg-zinc-100 dark:text-zinc-900 shadow-sm ring-1 ring-white/60 pointer-events-none tracking-widest text-[8px] uppercase">
           ツモ
         </span>
       )}
 
       {/* リーチ宣言ラベル */}
       {isReach && (
-        <span className="absolute top-0 left-1/2 -translate-x-1/2 z-20 whitespace-nowrap px-0.5 sm:px-1 text-[6px] sm:text-[7px] font-bold rounded bg-red-600 text-white shadow-xs pointer-events-none">
+        <span className="absolute top-0 left-1/2 -translate-x-1/2 z-20 whitespace-nowrap px-1 text-[7px] font-bold rounded bg-rose-600 text-white shadow-xs pointer-events-none">
           立直
         </span>
       )}
@@ -98,22 +98,22 @@ export const MahjongTile: React.FC<MahjongTileProps> = ({
         className={`
           ${sizeClasses[size]}
           relative flex items-center justify-center p-0
-          transition-all duration-150 select-none
+          transition-all duration-150 ease-out select-none
           rounded-[3px] overflow-hidden
           ${
             isClickable
-              ? 'cursor-pointer hover:-translate-y-2 hover:drop-shadow-[0_8px_12px_rgba(0,0,0,0.28)] active:translate-y-0'
+              ? 'cursor-pointer hover:-translate-y-1.5 hover:drop-shadow-[0_6px_10px_rgba(0,0,0,0.22)] active:translate-y-0'
               : 'cursor-default'
           }
           ${
             selected
-              ? '-translate-y-2.5 ring-2 ring-blue-500 ring-offset-1 drop-shadow-[0_8px_16px_rgba(37,99,235,0.45)]'
-              : 'drop-shadow-[0_2px_4px_rgba(0,0,0,0.18)]'
+              ? '-translate-y-2 ring-2 ring-blue-600 ring-offset-2 ring-offset-white dark:ring-offset-zinc-900 drop-shadow-[0_8px_14px_rgba(37,99,235,0.35)]'
+              : 'drop-shadow-[0_2px_3px_rgba(0,0,0,0.14)]'
           }
           ${isUnavailable ? 'opacity-30 grayscale cursor-not-allowed' : ''}
           ${
             isTsumogiri
-              ? 'brightness-60 contrast-90 opacity-70 filter'
+              ? 'brightness-75 contrast-90 opacity-75 filter'
               : ''
           }
         `}
@@ -128,7 +128,7 @@ export const MahjongTile: React.FC<MahjongTileProps> = ({
           />
         ) : (
           /* 画像ロード失敗時のSVG/テキストフォールバック */
-          <div className="w-full h-full flex flex-col items-center justify-center bg-amber-50 border border-amber-300 rounded text-xs font-bold text-gray-900">
+          <div className="w-full h-full flex flex-col items-center justify-center bg-zinc-50 border border-zinc-300 rounded text-xs font-bold text-zinc-900">
             <span>{display.topText}</span>
             <span className={display.suitColor}>{display.bottomText}</span>
           </div>

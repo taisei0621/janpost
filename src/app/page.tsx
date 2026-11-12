@@ -14,7 +14,6 @@ import {
   isDeviceAdmin,
   verifyAndSetAdmin,
   revokeAdmin,
-  ADMIN_SECRET,
 } from '../utils/problemService';
 import { isSupabaseConfigured } from '../utils/supabaseClient';
 
@@ -169,41 +168,50 @@ export default function Home() {
     });
   }, [problems, selectedFilter, sortOrder]);
 
+  // 全体の総投票数を集計（ヘッダー等の表示用）
+  const totalVotesAcrossAll = useMemo(() => {
+    return problems.reduce((total, p) => {
+      return total + Object.values(p.stats || {}).reduce((a, b) => a + b, 0);
+    }, 0);
+  }, [problems]);
+
   return (
-    <div className="min-h-screen bg-zinc-100 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-sans">
+    <div className="min-h-screen bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-zinc-100 font-sans selection:bg-slate-200 dark:selection:bg-zinc-800">
       {/* ナビゲーションバー */}
-      <header className="sticky top-0 z-40 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-sm border-b border-zinc-200 dark:border-zinc-800">
-        <div className="max-w-5xl mx-auto px-4 h-15 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <span className="w-7 h-7 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-lg flex items-center justify-center font-black text-sm select-none">
+      <header className="sticky top-0 z-40 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md border-b border-slate-200/80 dark:border-zinc-800/80 transition-colors">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-950 flex items-center justify-center font-black text-base shadow-sm ring-1 ring-slate-900/10 dark:ring-white/20 select-none">
               雀
-            </span>
+            </div>
             <div>
-              <h1 className="text-base sm:text-lg font-black tracking-tight text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
-                雀ポスト
-                <span className="text-[11px] font-mono font-medium text-zinc-500 dark:text-zinc-400">
-                  JanPost
+              <div className="flex items-center gap-2">
+                <h1 className="text-base sm:text-lg font-extrabold tracking-tight text-slate-900 dark:text-zinc-100">
+                  雀ポスト
+                </h1>
+                <span className="text-[10px] font-mono font-semibold tracking-wider text-slate-400 dark:text-zinc-500 uppercase px-1.5 py-0.5 rounded bg-slate-100 dark:bg-zinc-900 border border-slate-200/60 dark:border-zinc-800">
+                  JANPOST
                 </span>
-              </h1>
+              </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 sm:gap-3">
             {isSupabaseConfigured && (
-              <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-medium text-emerald-700 bg-emerald-50 dark:bg-emerald-950/60 dark:text-emerald-400 px-2.5 py-1 rounded-md border border-emerald-200 dark:border-emerald-850">
+              <div className="hidden sm:inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 bg-emerald-50/80 dark:bg-emerald-950/40 dark:text-emerald-400 px-2.5 py-1 rounded-full border border-emerald-200/70 dark:border-emerald-800/60">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span>クラウド同期中</span>
-              </span>
+                <span className="text-[11px] font-medium tracking-tight">クラウド同期</span>
+              </div>
             )}
 
             {/* 管理者モード切り替え */}
             {isAdmin ? (
-              <div className="flex items-center gap-1 bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 text-xs px-2.5 py-1 rounded-md border border-amber-200 dark:border-amber-800">
+              <div className="flex items-center gap-1.5 bg-amber-50 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 text-xs px-2.5 py-1 rounded-lg border border-amber-200/80 dark:border-amber-800/80 shadow-xs">
                 <span className="text-[11px] font-bold">🛡️ 管理者</span>
                 <button
                   type="button"
                   onClick={handleAdminAuth}
-                  className="text-red-500 hover:text-red-700 ml-1 underline cursor-pointer text-[10px]"
+                  className="text-rose-600 hover:text-rose-700 dark:text-rose-400 ml-1 font-medium cursor-pointer text-[11px]"
                   title="管理者モードを解除"
                 >
                   解除
@@ -213,20 +221,22 @@ export default function Home() {
               <button
                 type="button"
                 onClick={handleAdminAuth}
-                className="flex items-center gap-1 text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200 text-xs px-2 py-1 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer border border-zinc-200 dark:border-zinc-800"
-                title="管理者ログイン（全問の削除権限を取得）"
+                className="flex items-center gap-1.5 text-slate-500 hover:text-slate-800 dark:text-zinc-400 dark:hover:text-zinc-200 text-xs px-2.5 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-zinc-800/80 transition-colors cursor-pointer border border-transparent hover:border-slate-200 dark:hover:border-zinc-700"
+                title="管理者ログイン"
               >
-                <span>🔑</span>
-                <span className="text-[11px]">管理者</span>
+                <span className="text-xs opacity-75">🔑</span>
+                <span className="text-[11px] font-medium">管理者</span>
               </button>
             )}
 
             <button
               type="button"
               onClick={() => setIsModalOpen(true)}
-              className="flex items-center gap-1 bg-zinc-900 hover:bg-zinc-800 active:scale-98 text-white dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100 text-xs font-semibold px-3.5 py-1.5 rounded-md shadow-sm transition-all cursor-pointer"
+              className="inline-flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 active:scale-[0.98] text-white dark:bg-zinc-100 dark:text-zinc-950 dark:hover:bg-white text-xs font-semibold px-3.5 py-2 rounded-lg shadow-sm hover:shadow transition-all duration-150 cursor-pointer"
             >
-              <span>+</span>
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M12 5v14M5 12h14" />
+              </svg>
               <span>問題を作成</span>
             </button>
           </div>
@@ -234,95 +244,134 @@ export default function Home() {
       </header>
 
       {/* ヒーローセクション */}
-      <section className="bg-white dark:bg-zinc-900 py-8 px-4 border-b border-zinc-200 dark:border-zinc-800">
-        <div className="max-w-3xl mx-auto text-center space-y-2">
-          <h2 className="text-xl sm:text-3xl font-black text-zinc-900 dark:text-zinc-50 tracking-tight">
-            迷った一打を問う。雀士の統計で解く。
+      <section className="relative overflow-hidden bg-white dark:bg-zinc-900/60 border-b border-slate-200/80 dark:border-zinc-800/80 py-10 sm:py-12 px-4">
+        {/* 背景の微細な装飾 */}
+        <div className="absolute inset-0 bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] dark:bg-[radial-gradient(#27272a_1px,transparent_1px)] [background-size:16px_16px] [mask-image:radial-gradient(ellipse_50%_50%_at_50%_50%,#000_70%,transparent_100%)] pointer-events-none opacity-60" />
+
+        <div className="relative max-w-3xl mx-auto text-center space-y-3">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 text-[11px] font-medium text-slate-600 dark:text-zinc-300">
+            <span className="text-xs">🀄</span>
+            <span>麻雀「何切る」戦術分析プラットフォーム</span>
+          </div>
+
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 dark:text-zinc-50 tracking-tight leading-tight">
+            迷った一打を問う。<br className="hidden sm:inline" />
+            雀士の統計で解く。
           </h2>
-          <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 max-w-lg mx-auto leading-relaxed">
-            手牌14枚から打牌を選択し、全国の雀士の選択割合・打牌理由・戦術解説を確認できます。
+
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-zinc-400 max-w-xl mx-auto leading-relaxed">
+            手牌や盤面状況から打牌を選択。全国の雀士による選択割合・打牌理由・実戦解説から最善手を見つけ出せます。
           </p>
+
+          <div className="flex items-center justify-center gap-6 pt-2 text-xs font-medium text-slate-500 dark:text-zinc-400 font-mono">
+            <div className="flex items-center gap-1.5">
+              <span className="text-slate-900 dark:text-zinc-100 font-bold tabular-nums text-sm">
+                {problems.length}
+              </span>
+              <span>問登録</span>
+            </div>
+            <span className="text-slate-300 dark:text-zinc-700">|</span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-slate-900 dark:text-zinc-100 font-bold tabular-nums text-sm">
+                {totalVotesAcrossAll.toLocaleString()}
+              </span>
+              <span>回答集計</span>
+            </div>
+          </div>
         </div>
       </section>
 
       {/* メインコンテンツ */}
-      <main className="max-w-4xl mx-auto px-4 py-6">
-        {/* レベル切り替えタブ */}
-        <div className="flex flex-wrap items-center justify-center gap-1.5 mb-4">
-          <button
-            type="button"
-            onClick={() => setSelectedFilter('all')}
-            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors cursor-pointer ${
-              selectedFilter === 'all'
-                ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900'
-                : 'bg-white text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50'
-            }`}
-          >
-            すべて ({problems.length})
-          </button>
-          <button
-            type="button"
-            onClick={() => setSelectedFilter('beginner')}
-            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors cursor-pointer ${
-              selectedFilter === 'beginner'
-                ? 'bg-emerald-700 text-white'
-                : 'bg-white text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50'
-            }`}
-          >
-            初級（基本の受け入れ）
-          </button>
-          <button
-            type="button"
-            onClick={() => setSelectedFilter('intermediate')}
-            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors cursor-pointer ${
-              selectedFilter === 'intermediate'
-                ? 'bg-blue-700 text-white'
-                : 'bg-white text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50'
-            }`}
-          >
-            中級（打点とスピード）
-          </button>
-          <button
-            type="button"
-            onClick={() => setSelectedFilter('advanced')}
-            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors cursor-pointer ${
-              selectedFilter === 'advanced'
-                ? 'bg-purple-700 text-white'
-                : 'bg-white text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50'
-            }`}
-          >
-            上級（押し引きと状況判断）
-          </button>
-          <button
-            type="button"
-            onClick={() => setSelectedFilter('user')}
-            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors cursor-pointer ${
-              selectedFilter === 'user'
-                ? 'bg-amber-700 text-white'
-                : 'bg-white text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50'
-            }`}
-          >
-            ユーザー投稿
-          </button>
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
+        {/* レベル切り替えタブ（セグメントコントロール風デザイン） */}
+        <div className="w-full flex justify-center mb-6">
+          <div className="inline-flex p-1 rounded-xl bg-slate-200/80 dark:bg-zinc-800/90 border border-slate-200 dark:border-zinc-700/60 overflow-x-auto max-w-full">
+            <button
+              type="button"
+              onClick={() => setSelectedFilter('all')}
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
+                selectedFilter === 'all'
+                  ? 'bg-white dark:bg-zinc-700 text-slate-900 dark:text-zinc-50 shadow-xs'
+                  : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-200'
+              }`}
+            >
+              <span>すべて</span>
+              <span className="text-[10px] font-mono px-1 rounded bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400">
+                {problems.length}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setSelectedFilter('beginner')}
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
+                selectedFilter === 'beginner'
+                  ? 'bg-white dark:bg-zinc-700 text-emerald-700 dark:text-emerald-400 shadow-xs'
+                  : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-200'
+              }`}
+            >
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              <span>初級 (受け入れ)</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setSelectedFilter('intermediate')}
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
+                selectedFilter === 'intermediate'
+                  ? 'bg-white dark:bg-zinc-700 text-sky-700 dark:text-sky-400 shadow-xs'
+                  : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-200'
+              }`}
+            >
+              <span className="w-2 h-2 rounded-full bg-sky-500" />
+              <span>中級 (打点/速度)</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setSelectedFilter('advanced')}
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
+                selectedFilter === 'advanced'
+                  ? 'bg-white dark:bg-zinc-700 text-indigo-700 dark:text-indigo-400 shadow-xs'
+                  : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-200'
+              }`}
+            >
+              <span className="w-2 h-2 rounded-full bg-indigo-500" />
+              <span>上級 (状況判断)</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setSelectedFilter('user')}
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
+                selectedFilter === 'user'
+                  ? 'bg-white dark:bg-zinc-700 text-amber-700 dark:text-amber-400 shadow-xs'
+                  : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-200'
+              }`}
+            >
+              <span className="w-2 h-2 rounded-full bg-amber-500" />
+              <span>ユーザー投稿</span>
+            </button>
+          </div>
         </div>
 
-        {/* 並び替えコントローラー */}
-        <div className="flex items-center justify-between gap-2 mb-6 px-1 text-xs">
-          <span className="text-zinc-500 font-medium">
-            {processedProblems.length}件の問題
-          </span>
-
-          <div className="flex items-center bg-zinc-200/70 dark:bg-zinc-800 p-0.5 rounded-md border border-zinc-200 dark:border-zinc-700">
-            <span className="text-[10px] text-zinc-500 dark:text-zinc-400 px-2 font-medium">
-              並び替え:
+        {/* 並び替えコントローラー & 検索件数 */}
+        <div className="flex items-center justify-between gap-3 mb-6 px-1 text-xs">
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-slate-800 dark:text-zinc-200 font-mono tabular-nums">
+              {processedProblems.length}
             </span>
+            <span className="text-slate-500 dark:text-zinc-400">件を表示中</span>
+          </div>
+
+          <div className="inline-flex items-center bg-slate-200/70 dark:bg-zinc-800/80 p-0.5 rounded-lg border border-slate-200 dark:border-zinc-700/60">
             <button
               type="button"
               onClick={() => setSortOrder('newest')}
-              className={`px-2.5 py-1 rounded text-xs font-medium transition-colors cursor-pointer ${
+              className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all cursor-pointer ${
                 sortOrder === 'newest'
-                  ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-xs'
-                  : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
+                  ? 'bg-white dark:bg-zinc-700 text-slate-900 dark:text-zinc-100 shadow-xs'
+                  : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-200'
               }`}
             >
               新着順
@@ -330,10 +379,10 @@ export default function Home() {
             <button
               type="button"
               onClick={() => setSortOrder('popular')}
-              className={`px-2.5 py-1 rounded text-xs font-medium transition-colors cursor-pointer ${
+              className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all cursor-pointer ${
                 sortOrder === 'popular'
-                  ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-xs'
-                  : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
+                  ? 'bg-white dark:bg-zinc-700 text-slate-900 dark:text-zinc-100 shadow-xs'
+                  : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-200'
               }`}
             >
               人気順
@@ -341,10 +390,10 @@ export default function Home() {
             <button
               type="button"
               onClick={() => setSortOrder('votes')}
-              className={`px-2.5 py-1 rounded text-xs font-medium transition-colors cursor-pointer ${
+              className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all cursor-pointer ${
                 sortOrder === 'votes'
-                  ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-xs'
-                  : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
+                  ? 'bg-white dark:bg-zinc-700 text-slate-900 dark:text-zinc-100 shadow-xs'
+                  : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-200'
               }`}
             >
               回答数順
@@ -355,20 +404,28 @@ export default function Home() {
         {/* 問題一覧 */}
         <div className="space-y-8 flex flex-col items-center">
           {isLoading ? (
-            <div className="text-center py-12 space-y-2">
-              <div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto" />
-              <p className="text-xs text-zinc-500">クラウドデータベースから問題を読み込み中...</p>
+            <div className="text-center py-20 space-y-3">
+              <div className="w-8 h-8 border-2 border-slate-900 dark:border-zinc-100 border-t-transparent rounded-full animate-spin mx-auto" />
+              <p className="text-xs text-slate-500 dark:text-zinc-400 font-medium">問題データを読み込み中...</p>
             </div>
           ) : processedProblems.length === 0 ? (
-            <div className="text-center py-16 text-zinc-400 space-y-3">
-              <span className="text-4xl">🀆</span>
-              <p className="text-sm">該当する問題がまだありません。</p>
+            <div className="text-center py-16 px-4 bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 max-w-md w-full space-y-3 shadow-xs">
+              <div className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-zinc-800 flex items-center justify-center text-2xl mx-auto">
+                🀆
+              </div>
+              <p className="text-sm font-semibold text-slate-800 dark:text-zinc-200">
+                該当する問題がまだありません
+              </p>
+              <p className="text-xs text-slate-500 dark:text-zinc-400">
+                新しい何切る問題を投稿してみませんか？
+              </p>
               <button
                 type="button"
                 onClick={() => setIsModalOpen(true)}
-                className="text-xs text-blue-600 dark:text-blue-400 underline font-bold cursor-pointer"
+                className="mt-2 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-slate-900 text-white dark:bg-zinc-100 dark:text-zinc-900 text-xs font-semibold shadow-xs hover:bg-slate-800 transition-colors cursor-pointer"
               >
-                あなたが最初の問題を投稿してみませんか？
+                <span>+</span>
+                <span>問題を作成する</span>
               </button>
             </div>
           ) : (
@@ -387,11 +444,19 @@ export default function Home() {
       </main>
 
       {/* フッター */}
-      <footer className="bg-white dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800 py-8 text-center text-xs text-zinc-500 space-y-1.5">
-        <p className="font-bold text-zinc-700 dark:text-zinc-300">
-          雀ポスト (JanPost) - 麻雀何切る投稿・投票プラットフォーム
+      <footer className="mt-16 bg-white dark:bg-zinc-950 border-t border-slate-200/80 dark:border-zinc-800/80 py-10 text-center text-xs text-slate-500 dark:text-zinc-400 space-y-2">
+        <div className="flex items-center justify-center gap-2">
+          <span className="w-5 h-5 rounded bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-950 flex items-center justify-center font-bold text-[10px]">
+            雀
+          </span>
+          <p className="font-bold text-slate-800 dark:text-zinc-200">
+            雀ポスト (JanPost)
+          </p>
+        </div>
+        <p className="text-[11px] text-slate-400 dark:text-zinc-500">
+          麻雀の何切る問題・戦術検討プラットフォーム
         </p>
-        <p className="text-zinc-400">
+        <p className="text-slate-400 dark:text-zinc-600 pt-1">
           <button
             type="button"
             onClick={handleAdminAuth}
@@ -403,16 +468,16 @@ export default function Home() {
           All rights reserved.
         </p>
 
-        {/* 管理者端末認証中のみ表示（一般ユーザーには一切表示されません） */}
+        {/* 管理者端末認証中のみ表示 */}
         {isAdmin && (
-          <div className="pt-1">
-            <span className="inline-flex items-center gap-1.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 px-2.5 py-1 rounded text-[11px] border border-zinc-300 dark:border-zinc-700">
+          <div className="pt-2">
+            <span className="inline-flex items-center gap-1.5 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 px-3 py-1 rounded-full text-[11px] border border-amber-200/80 dark:border-amber-800/80">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              <span>管理者端末として認証中（問題の削除が可能）</span>
+              <span>管理者端末として認証中（全問題の削除が可能）</span>
               <button
                 type="button"
                 onClick={handleAdminAuth}
-                className="text-red-500 hover:text-red-700 ml-1 underline cursor-pointer"
+                className="text-rose-600 hover:text-rose-700 ml-1 font-semibold underline cursor-pointer"
               >
                 ログアウト
               </button>

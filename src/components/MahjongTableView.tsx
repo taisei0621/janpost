@@ -83,38 +83,38 @@ export const MahjongTableView: React.FC<MahjongTableViewProps> = ({ problem }) =
 
     return (
       <div className="flex flex-col items-center">
-        {/* プレイヤー情報 */}
+        {/* プレイヤー情報バッジ */}
         <div className="mb-1 flex flex-wrap items-center justify-center gap-1 sm:gap-2 text-xs text-white">
           <span
-            className={`px-1.5 sm:px-2 py-0.5 rounded text-[10px] sm:text-[11px] font-semibold tracking-wide ${
+            className={`px-2 py-0.5 rounded text-[10px] sm:text-[11px] font-bold tracking-tight shadow-2xs ${
               seat.isSelf
-                ? 'bg-blue-600 text-white'
-                : 'bg-black/50 text-zinc-200'
+                ? 'bg-blue-600 text-white ring-1 ring-blue-300/40'
+                : 'bg-black/60 text-zinc-200'
             }`}
           >
             {seat.wind}（{seat.label}）
           </span>
 
           {p?.isReach && (
-            <span className="inline-flex items-center gap-0.5 bg-red-600 text-white text-[9px] sm:text-[10px] px-1 sm:px-1.5 py-0.5 rounded font-semibold">
+            <span className="inline-flex items-center gap-1 bg-rose-600 text-white text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded font-bold shadow-2xs">
               <img src="/pai-images/tennbou-001.png" alt="立直" className="h-1.5 sm:h-2 w-auto rotate-90" />
               立直
             </span>
           )}
 
           {sc !== undefined && (
-            <span className="font-mono text-[10px] sm:text-[11px] text-zinc-200">
+            <span className="font-mono text-[10px] sm:text-[11px] text-zinc-200 font-semibold tabular-nums">
               {sc.toLocaleString()}点
               {!seat.isSelf && (
-                <span className={`ml-0.5 sm:ml-1 text-[9px] sm:text-[10px] ${diff >= 0 ? 'text-emerald-300' : 'text-rose-300'}`}>
-                  {diff >= 0 ? `+${diff}` : diff}
+                <span className={`ml-1 text-[9px] sm:text-[10px] ${diff >= 0 ? 'text-emerald-300' : 'text-rose-300'}`}>
+                  {diff >= 0 ? `+${diff.toLocaleString()}` : diff.toLocaleString()}
                 </span>
               )}
             </span>
           )}
         </div>
 
-        {/* 鳴き牌（副露）: 実際の牌画像を表示 */}
+        {/* 鳴き牌（副露） */}
         {melds.length > 0 && (
           <div className="mb-1 flex flex-wrap items-center justify-center gap-1">
             {melds.map((meldStr, mIdx) => {
@@ -122,7 +122,7 @@ export const MahjongTableView: React.FC<MahjongTableViewProps> = ({ problem }) =
               return (
                 <div
                   key={`meld-${seat.wind}-${mIdx}`}
-                  className="inline-flex items-center gap-0.5 bg-[#124b27] px-1 py-0.5 rounded border border-amber-400/40 shadow-xs"
+                  className="inline-flex items-center gap-0.5 bg-[#0f3d20] px-1.5 py-0.5 rounded border border-amber-400/40 shadow-xs"
                 >
                   {label && (
                     <span className="text-[7px] sm:text-[8px] text-amber-300 font-bold px-0.5">
@@ -152,7 +152,7 @@ export const MahjongTableView: React.FC<MahjongTableViewProps> = ({ problem }) =
         )}
 
         {/* 6枚×3段の河 */}
-        <div className="p-0.5 sm:p-1 rounded bg-[#165630] border border-emerald-600/40">
+        <div className="p-1 sm:p-1.5 rounded-lg bg-[#114624] border border-emerald-600/40 shadow-inner">
           <div className="flex flex-col gap-0.5 sm:gap-1">
             {rows.map((rowTiles, rIdx) => (
               <div key={`row-${seat.wind}-${rIdx}`} className="flex items-center gap-0.5 sm:gap-1 justify-center">
@@ -173,7 +173,7 @@ export const MahjongTableView: React.FC<MahjongTableViewProps> = ({ problem }) =
                 {Array.from({ length: Math.max(0, 6 - rowTiles.length) }).map((_, slotIdx) => (
                   <div
                     key={`slot-${seat.wind}-${rIdx}-${slotIdx}`}
-                    className="w-[16px] h-[22px] sm:w-[24px] sm:h-[33px] border border-dashed border-emerald-500/30 rounded-[2px] flex items-center justify-center text-[7px] sm:text-[9px] text-emerald-300/40 select-none"
+                    className="w-[16px] h-[22px] sm:w-[24px] sm:h-[33px] border border-dashed border-emerald-500/25 rounded-[2px] flex items-center justify-center text-[7px] sm:text-[9px] text-emerald-300/40 select-none font-mono"
                   >
                     {rowTiles.length + slotIdx + 1}
                   </div>
@@ -187,14 +187,14 @@ export const MahjongTableView: React.FC<MahjongTableViewProps> = ({ problem }) =
   };
 
   return (
-    <div className="w-full bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-2 sm:p-4 space-y-3">
+    <div className="w-full bg-white dark:bg-zinc-900 rounded-xl border border-slate-200 dark:border-zinc-800 p-2 sm:p-4 space-y-3 shadow-2xs">
       {/* 盤面ヘッダー */}
-      <div className="flex items-center justify-between pb-2 border-b border-zinc-100 dark:border-zinc-800">
+      <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 dark:border-zinc-800">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100">
+          <span className="text-xs font-bold text-slate-900 dark:text-zinc-100">
             対局盤面
           </span>
-          <span className="text-[11px] text-zinc-500 font-mono">
+          <span className="text-[11px] text-slate-500 font-mono">
             {problem.context.round}
             {problem.context.honba && problem.context.honba > 0 ? ` ${problem.context.honba}本場` : ''}
             {' '}{problem.context.turn}巡目
@@ -202,14 +202,14 @@ export const MahjongTableView: React.FC<MahjongTableViewProps> = ({ problem }) =
         </div>
 
         {/* 表示モード切替 */}
-        <div className="flex items-center bg-zinc-100 dark:bg-zinc-800 p-0.5 rounded text-xs">
+        <div className="inline-flex bg-slate-100 dark:bg-zinc-800 p-0.5 rounded-lg text-xs border border-slate-200 dark:border-zinc-700/60">
           <button
             type="button"
             onClick={() => setViewMode('table')}
-            className={`px-2.5 py-1 rounded text-xs font-medium cursor-pointer transition-colors ${
+            className={`px-2.5 py-1 rounded-md text-xs font-medium cursor-pointer transition-all ${
               viewMode === 'table'
-                ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-xs'
-                : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200'
+                ? 'bg-white dark:bg-zinc-700 text-slate-900 dark:text-zinc-100 shadow-2xs'
+                : 'text-slate-500 hover:text-slate-900 dark:hover:text-zinc-200'
             }`}
           >
             卓上配置
@@ -217,10 +217,10 @@ export const MahjongTableView: React.FC<MahjongTableViewProps> = ({ problem }) =
           <button
             type="button"
             onClick={() => setViewMode('list')}
-            className={`px-2.5 py-1 rounded text-xs font-medium cursor-pointer transition-colors ${
+            className={`px-2.5 py-1 rounded-md text-xs font-medium cursor-pointer transition-all ${
               viewMode === 'list'
-                ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-xs'
-                : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200'
+                ? 'bg-white dark:bg-zinc-700 text-slate-900 dark:text-zinc-100 shadow-2xs'
+                : 'text-slate-500 hover:text-slate-900 dark:hover:text-zinc-200'
             }`}
           >
             一覧表示
@@ -231,8 +231,8 @@ export const MahjongTableView: React.FC<MahjongTableViewProps> = ({ problem }) =
       {/* 1. 卓上配置（実戦の麻雀卓全景） */}
       {viewMode === 'table' && (
         <div className="w-full overflow-x-auto pb-1 flex justify-start sm:justify-center">
-          <div className="w-full max-w-[640px] rounded-xl p-2 sm:p-4 bg-[#1a6639] border border-[#134d2b] shadow-inner">
-            <div className="relative rounded-lg p-2 sm:p-3 bg-[#1e7542] border border-emerald-500/20 flex flex-col items-center gap-2 sm:gap-3">
+          <div className="w-full max-w-[640px] rounded-2xl p-2 sm:p-4 bg-[#0e3b1c] border border-[#0a2c15] shadow-inner">
+            <div className="relative rounded-xl p-2 sm:p-3 bg-[#135028] border border-emerald-500/25 flex flex-col items-center gap-2 sm:gap-3 shadow-inner">
               {/* 対面（上） */}
               <div className="w-full flex justify-center">
                 {renderBoardRiver(seats.toimen)}
@@ -245,9 +245,9 @@ export const MahjongTableView: React.FC<MahjongTableViewProps> = ({ problem }) =
                   {renderBoardRiver(seats.kami)}
                 </div>
 
-                {/* センターボックス（サイコロ部） */}
-                <div className="shrink-0 w-24 sm:w-36 p-1.5 sm:p-2 rounded-lg bg-[#14532d] border border-amber-500/50 flex flex-col items-center justify-center text-center gap-1 sm:gap-1.5 shadow-sm text-white">
-                  <div className="px-1.5 sm:px-2 py-0.5 bg-black/40 rounded text-[9px] sm:text-[11px] font-semibold tracking-wide">
+                {/* センターボックス（サイコロ部・王牌・供託） */}
+                <div className="shrink-0 w-24 sm:w-36 p-1.5 sm:p-2 rounded-xl bg-[#0b3318] border border-amber-500/50 flex flex-col items-center justify-center text-center gap-1 sm:gap-1.5 shadow-md text-white">
+                  <div className="px-2 py-0.5 bg-black/50 rounded text-[9px] sm:text-[11px] font-bold tracking-tight">
                     {problem.context.round}
                     {problem.context.honba && problem.context.honba > 0 ? ` ${problem.context.honba}本場` : ''}
                     {' '}{problem.context.turn}巡目
@@ -255,8 +255,8 @@ export const MahjongTableView: React.FC<MahjongTableViewProps> = ({ problem }) =
 
                   {/* ドラ表示牌（最大5枚対応） */}
                   <div className="flex flex-col items-center gap-0.5">
-                    <span className="text-[8px] sm:text-[9px] text-zinc-300">
-                      ドラ表示牌{doraTiles.length > 1 ? ` (${doraTiles.length}枚)` : ''}
+                    <span className="text-[8px] sm:text-[9px] text-zinc-300 font-medium">
+                      ドラ表示牌{doraTiles.length > 1 ? ` (${doraTiles.length})` : ''}
                     </span>
                     <div className="flex items-center gap-0.5 justify-center flex-wrap max-w-full">
                       {doraTiles.map((dt, idx) => (
@@ -267,14 +267,14 @@ export const MahjongTableView: React.FC<MahjongTableViewProps> = ({ problem }) =
 
                   {/* 本場（積み棒）表示 */}
                   {problem.context.honba && problem.context.honba > 0 ? (
-                    <div className="flex items-center gap-0.5 bg-amber-600/90 text-white px-1.5 py-0.5 rounded text-[8px] sm:text-[9px] font-semibold shadow-xs">
+                    <div className="flex items-center gap-1 bg-amber-600/95 text-white px-1.5 py-0.5 rounded text-[8px] sm:text-[9px] font-bold shadow-2xs">
                       <img src="/pai-images/tennbou-000.png" alt="本場" className="h-1.5 sm:h-2 w-auto rotate-90" />
-                      <span>{problem.context.honba}本場 (+{problem.context.honba * 300}点)</span>
+                      <span>{problem.context.honba}本場 (+{problem.context.honba * 300})</span>
                     </div>
                   ) : null}
 
                   {reachCount > 0 ? (
-                    <div className="flex items-center gap-0.5 sm:gap-1 bg-red-600/90 text-white px-1.5 sm:px-2 py-0.5 rounded text-[8px] sm:text-[9px] font-semibold">
+                    <div className="flex items-center gap-1 bg-rose-600/95 text-white px-1.5 sm:px-2 py-0.5 rounded text-[8px] sm:text-[9px] font-bold shadow-2xs">
                       <img
                         src="/pai-images/tennbou-001.png"
                         alt="供託"
@@ -308,10 +308,10 @@ export const MahjongTableView: React.FC<MahjongTableViewProps> = ({ problem }) =
           {[seats.self, seats.kami, seats.toimen, seats.shimo].map((seat) => (
             <div
               key={`list-${seat.wind}`}
-              className={`p-3 rounded-lg border ${
+              className={`p-3 rounded-xl border ${
                 seat.isSelf
-                  ? 'bg-blue-50/50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900'
-                  : 'bg-zinc-50 dark:bg-zinc-850 border-zinc-200 dark:border-zinc-800'
+                  ? 'bg-blue-50/50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900/60 shadow-2xs'
+                  : 'bg-slate-50 dark:bg-zinc-850/60 border-slate-200 dark:border-zinc-800'
               }`}
             >
               {renderBoardRiver(seat)}
