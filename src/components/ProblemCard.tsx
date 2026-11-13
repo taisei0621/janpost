@@ -77,7 +77,7 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({
   };
 
   const handleDelete = () => {
-    if (window.confirm(`この問題「${problem.title}」を破棄（削除）しますか？\n（元に戻せません）`)) {
+    if (window.confirm(`この問題「${problem.title}」を削除しますか？\n（元に戻せません）`)) {
       if (onDelete) {
         onDelete(problem.id);
       }
@@ -118,20 +118,20 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({
     ? sortedHand[selectedTileIndex]
     : null;
 
-  // 切手・封蝋風の難易度バッジ
+  // 切手風の難易度バッジ（デザインはそのまま、文言を自然に）
   const levelBadges = {
     beginner: {
-      text: '初級便',
+      text: '初級',
       stampClass: 'border-[#124D27] text-[#124D27] bg-[#EAF2EC]',
       sealText: '初',
     },
     intermediate: {
-      text: '中級便',
+      text: '中級',
       stampClass: 'border-[#1E3A5F] text-[#1E3A5F] bg-[#E8EFF7]',
       sealText: '中',
     },
     advanced: {
-      text: '上級便',
+      text: '上級',
       stampClass: 'border-[#5B2C6F] text-[#5B2C6F] bg-[#F3EBF7]',
       sealText: '上',
     },
@@ -235,10 +235,10 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({
         </div>
       )}
 
-      {/* ハガキのヘッダー部（切手・消印・差出人） */}
+      {/* ハガキのヘッダー部（切手・消印・出題者） */}
       <div className="p-4 sm:p-6 bg-[#F8F5EC] border-b border-[#D5CEBE]">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
-          {/* 左側：切手風難易度バッジ ＆ 差出人 */}
+          {/* 左側：切手風難易度バッジ ＆ 出題者 */}
           <div className="flex items-center gap-2.5 flex-wrap">
             {/* 切手風バッジ */}
             <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border-2 border-dashed text-xs font-bold font-serif ${levelBadges[problem.level].stampClass}`}>
@@ -250,16 +250,16 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({
 
             {problem.imageUrl && (
               <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-md bg-[#EAE4D7] text-[#5C5549] border border-[#D5CEBE]">
-                <span>📷 写真添付</span>
+                <span>📷 写真あり</span>
               </span>
             )}
 
             <span className="text-xs text-[#7A7265] font-serif">
-              差出人: <strong className="text-[#262422]">{problem.author}</strong>
+              出題: <strong className="text-[#262422]">{problem.author}</strong>
             </span>
           </div>
 
-          {/* 右側：丸い消印スタンプ風メタ情報 & いいねスタンプ */}
+          {/* 右側：消印スタンプ風メタ情報 & いいねスタンプ */}
           <div className="flex items-center gap-2">
             {/* 消印スタンプ（日付 & 局） */}
             <div className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border border-[#1E3A5F]/40 text-[#1E3A5F] text-[10px] font-mono bg-[#E8EFF7]/60">
@@ -268,7 +268,7 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({
               <span>{problem.createdAt}</span>
             </div>
 
-            {/* いいねスタンプ（赤インクで捺印） */}
+            {/* いいねスタンプ */}
             <button
               type="button"
               onClick={handleToggleLike}
@@ -277,18 +277,18 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({
                   ? 'bg-[#C82C26] border-[#961E1A] text-white shadow-xs'
                   : 'bg-[#FBF9F4] border-[#D5CEBE] text-[#7A7265] hover:border-[#C82C26] hover:text-[#C82C26]'
               }`}
-              title="この便箋に共感の印を押す"
+              title="いいね"
             >
               <span className="text-xs">📮</span>
               <span className="font-mono tabular-nums">{likeCount}</span>
             </button>
 
-            {/* 破棄ボタン（権限所持時のみ） */}
+            {/* 削除ボタン（権限所持時のみ） */}
             {canDelete && (
               <button
                 type="button"
                 onClick={handleDelete}
-                title="この便箋を破棄する"
+                title="この問題を削除"
                 className="p-1.5 text-[#7A7265] hover:text-[#C82C26] hover:bg-[#F2E8E7] rounded-lg transition-colors cursor-pointer"
               >
                 <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -299,7 +299,7 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({
           </div>
         </div>
 
-        {/* 問題タイトル（便箋の件名） */}
+        {/* 問題タイトル */}
         <h3 className="text-lg sm:text-xl font-bold tracking-tight text-[#262422] font-serif mb-3">
           {problem.title}
         </h3>
@@ -310,7 +310,7 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({
             {/* 局況消印バッジ */}
             <div className="flex items-center gap-2 flex-wrap">
               <div className="inline-flex items-center gap-1.5 bg-[#1E3A5F] text-white px-2.5 py-1 rounded-md font-bold font-serif text-xs shadow-xs">
-                <span>〒 {problem.context.round}</span>
+                <span>{problem.context.round}</span>
                 {problem.context.honba && problem.context.honba > 0 ? (
                   <span className="inline-flex items-center gap-1 text-[11px] font-sans font-semibold text-amber-300">
                     <img src="/pai-images/tennbou-000.png" alt="本場" className="h-1.5 w-auto rotate-90 inline" />
@@ -332,7 +332,7 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({
               {riverStats.hasRiver && (
                 <span className="inline-flex items-center gap-1 text-[11px] font-bold text-[#124D27] bg-[#EAF2EC] px-2 py-0.5 rounded-full border border-[#124D27]/30">
                   <span>🀄</span>
-                  <span>河（捨て牌）あり</span>
+                  <span>河データあり</span>
                 </span>
               )}
             </div>
@@ -350,7 +350,7 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({
             </div>
           </div>
 
-          {/* 各家の点数チップ（郵便振替・電報伝票風） */}
+          {/* 各家の点数チップ */}
           {scores && (
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 border-t border-[#EAE4D7]">
               {WINDS.map((w) => {
@@ -404,7 +404,7 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({
           {/* 捨て牌・他家状況テキスト */}
           {problem.context.discardsInfo && (
             <div className="text-xs bg-[#F8F5EC] text-[#5C5549] p-2.5 rounded-lg border border-[#D5CEBE] leading-relaxed">
-              <span className="font-bold text-[#262422] mr-1.5 font-serif">通信欄メモ:</span>
+              <span className="font-bold text-[#262422] mr-1.5 font-serif">状況メモ:</span>
               <span className="whitespace-pre-line">{problem.context.discardsInfo}</span>
             </div>
           )}
@@ -431,11 +431,11 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({
                   )}
                 </div>
                 <span className={`text-xs font-bold ${riverStats.hasRiver ? 'text-[#124D27]' : 'text-[#7A7265]'}`}>
-                  {showRiverViewer ? '▲ 盤面を畳む' : '▼ 盤面を開く'}
+                  {showRiverViewer ? '▲ 盤面を閉じる' : '▼ 盤面を開く'}
                 </span>
               </button>
 
-              {/* 盤面展開エリア（※卓コンテナ・牌ロジックは変更禁止エリア） */}
+              {/* 盤面展開エリア（※変更禁止エリア） */}
               {showRiverViewer && (
                 <div className="mt-2.5 animate-fade-in">
                   <MahjongTableView problem={problem} />
@@ -461,7 +461,7 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({
                 className="max-h-72 sm:max-h-96 w-auto object-contain mx-auto transition-transform duration-200 group-hover:scale-[1.01] rounded-lg"
               />
               <div className="absolute bottom-3 right-3 bg-[#262422]/80 backdrop-blur-xs text-white text-[11px] font-medium px-2.5 py-1 rounded-md flex items-center gap-1.5 shadow-sm font-serif">
-                <span>🔍 拡大して検分</span>
+                <span>🔍 拡大表示</span>
               </div>
             </div>
           </div>
@@ -473,7 +473,7 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({
             <div className="flex items-center justify-between w-full mb-2.5 px-2">
               <span className="text-xs sm:text-sm font-bold text-[#262422] font-serif">
                 {hasAnswered
-                  ? '返信結果と雀士たちの集計'
+                  ? '回答結果と雀士たちの統計'
                   : '手牌14枚から切る牌を選択してください'}
               </span>
               <span className="text-[11px] font-mono text-[#5C5549] bg-[#EAE4D7] px-2 py-0.5 rounded-md border border-[#D5CEBE]">
@@ -540,7 +540,7 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({
           </div>
         )}
 
-        {/* 回答前：ハガキの通信欄・投函UI */}
+        {/* 回答前：打牌決定・理由入力エリア（「問題を投函する」ボタン） */}
         {!hasAnswered && (
           <div className="mt-5 w-full max-w-md flex flex-col items-center gap-3">
             {selectedTile ? (
@@ -548,20 +548,20 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-bold text-[#1E3A5F] font-serif">
-                      投函する打牌:
+                      選択中の打牌:
                     </span>
                     <span className="inline-flex items-center gap-1 font-bold text-sm bg-white px-2.5 py-0.5 rounded border border-[#1E3A5F] text-[#1E3A5F] shadow-xs">
                       <span>{getTileDisplay(selectedTile).topText}</span>
                       <span>{getTileDisplay(selectedTile).bottomText}</span>
                     </span>
                   </div>
-                  <span className="text-[11px] text-[#7A7265] font-serif">通信欄（理由）は任意</span>
+                  <span className="text-[11px] text-[#7A7265] font-serif">打牌理由は任意</span>
                 </div>
 
-                {/* 理由入力フォーム（便箋の罫線風） */}
+                {/* 理由入力フォーム */}
                 <input
                   type="text"
-                  placeholder="打牌理由を一筆（例: 筒子の受け入れ最大、親リーチの現物）"
+                  placeholder="打牌理由をひとこと（例: 筒子の受け入れ最大、親リーチの現物）"
                   value={userReason}
                   onChange={(e) => setUserReason(e.target.value)}
                   onKeyDown={(e) => {
@@ -574,7 +574,7 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({
                 />
 
                 <div className="flex items-center gap-2 pt-1">
-                  {/* ポストに投函する立体ボタン */}
+                  {/* 「問題を投函する」立体ボタン */}
                   <button
                     type="button"
                     onClick={() => handleSubmit(true)}
@@ -589,7 +589,7 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({
                       onClick={() => handleSubmit(false)}
                       className="py-2.5 px-3 text-xs text-[#7A7265] hover:text-[#262422] rounded-xl hover:bg-[#EAE4D7] transition-colors cursor-pointer font-serif"
                     >
-                      理由なしで即投函
+                      理由なしで即投票
                     </button>
                   )}
                 </div>
@@ -602,10 +602,10 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({
           </div>
         )}
 
-        {/* 回答後：届いた返信結果・消印レビュー・打牌分布 */}
+        {/* 回答後：結果・統計・考察コメント */}
         {hasAnswered && (
           <div className="w-full mt-6 space-y-6 animate-fade-in">
-            {/* 正解/妥協/悪手スタンプカード */}
+            {/* 正解/妥協/悪手判定カード */}
             <div
               className={`p-4 sm:p-5 rounded-2xl border-2 shadow-xs ${
                 selectedDiscardInfo?.rank === 'best'
@@ -616,12 +616,12 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({
               }`}
             >
               <div className="flex items-center gap-2 font-bold text-base sm:text-lg mb-1.5 font-serif">
-                {selectedDiscardInfo?.rank === 'best' && '📯 【正解受理】本命の打牌です'}
-                {selectedDiscardInfo?.rank === 'good' && '📮 【妥協手受理】別ルートの打牌です'}
-                {(!selectedDiscardInfo || selectedDiscardInfo.rank === 'bad') && '⚠️ 【返送注意】推奨されない打牌です'}
+                {selectedDiscardInfo?.rank === 'best' && '🎉 素晴らしい！本命の正解打牌です'}
+                {selectedDiscardInfo?.rank === 'good' && '🤔 妥協手・別ルートの打牌です'}
+                {(!selectedDiscardInfo || selectedDiscardInfo.rank === 'bad') && '⚠️ 悪手、または推奨されない打牌です'}
               </div>
               <p className="text-sm opacity-90 leading-relaxed font-serif">
-                あなたの投函:{' '}
+                あなたの選択:{' '}
                 <span className="font-bold underline">
                   {selectedTile ? `${getTileDisplay(selectedTile).topText}${getTileDisplay(selectedTile).bottomText}` : ''}
                 </span>{' '}
@@ -629,21 +629,21 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({
               </p>
               {userReason.trim() && (
                 <div className="mt-2.5 text-xs bg-white/80 p-2.5 rounded-lg border border-black/10 font-serif">
-                  <span className="font-bold">あなたの通信欄一筆:</span> 「{userReason}」
+                  <span className="font-bold">あなたの回答理由:</span> 「{userReason}」
                 </div>
               )}
             </div>
 
-            {/* みんなの返信分布（藍色とポストレッドのメーター） */}
+            {/* みんなの打牌分布 */}
             <div className="bg-[#F8F5EC] p-5 rounded-2xl border border-[#D5CEBE] space-y-3.5 shadow-xs">
               <div className="flex items-center justify-between">
                 <h4 className="font-bold text-sm text-[#262422] flex items-center gap-2 font-serif">
-                  <span>📊 全員の返信分布</span>
+                  <span>📊 全員の打牌分布</span>
                   <span className="text-xs font-mono font-normal text-[#5C5549] bg-[#EAE4D7] px-2 py-0.5 rounded-full border border-[#D5CEBE]">
-                    総返信: {totalVotes}通
+                    総投票数: {totalVotes}票
                   </span>
                 </h4>
-                <span className="text-[11px] text-[#7A7265] font-mono">消印集計</span>
+                <span className="text-[11px] text-[#7A7265] font-mono">リアルタイム集計</span>
               </div>
 
               <div className="space-y-3">
@@ -670,12 +670,12 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({
                             )}
                             {isUserChoice && (
                               <span className="bg-[#C82C26] text-white text-[10px] px-1.5 py-0.5 rounded font-bold font-serif">
-                                あなたの投函
+                                あなたの選択
                               </span>
                             )}
                           </div>
                           <span className="text-[#5C5549] font-mono tabular-nums">
-                            {count}通 ({percentage}%)
+                            {count}票 ({percentage}%)
                           </span>
                         </div>
 
@@ -698,23 +698,23 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({
               </div>
             </div>
 
-            {/* 戦術解説（郵便局からの解説便箋） */}
+            {/* 戦術解説 */}
             <div className="bg-[#FBF9F4] p-5 rounded-2xl border border-[#D5CEBE] space-y-2 shadow-xs">
               <h4 className="font-bold text-sm text-[#262422] flex items-center gap-2 font-serif">
-                <span>📖 戦術解説便</span>
+                <span>📖 戦術解説</span>
               </h4>
               <p className="text-xs sm:text-sm leading-relaxed text-[#403B33] whitespace-pre-line font-serif">
                 {problem.explanation}
               </p>
             </div>
 
-            {/* 届いた返信ハガキの束（コメント一覧） */}
+            {/* 打牌理由・考察一覧 */}
             <div className="bg-[#F8F5EC] p-5 rounded-2xl border border-[#D5CEBE] space-y-3.5 shadow-xs">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <h4 className="font-bold text-sm text-[#262422] flex items-center gap-2 font-serif">
-                  <span>✉️ 届いた返信ハガキ・考察</span>
+                  <span>💬 打牌理由・考察</span>
                   <span className="text-xs font-mono font-normal text-[#5C5549] bg-[#EAE4D7] px-2 py-0.5 rounded-full border border-[#D5CEBE]">
-                    {comments.length}通
+                    {comments.length}件
                   </span>
                 </h4>
               </div>
@@ -731,7 +731,7 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({
                         : 'bg-[#FBF9F4] text-[#5C5549] border border-[#D5CEBE]'
                     }`}
                   >
-                    すべてのハガキ ({comments.length})
+                    すべて ({comments.length})
                   </button>
                   {Array.from(new Set(comments.map((c) => c.tileId))).map((tId) => {
                     const count = comments.filter((c) => c.tileId === tId).length;
@@ -755,11 +755,11 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({
                 </div>
               )}
 
-              {/* コメント一覧（ハガキカードの連続） */}
+              {/* コメント一覧 */}
               <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1">
                 {filteredComments.length === 0 ? (
                   <p className="text-xs text-[#7A7265] py-4 text-center font-serif">
-                    この打牌についての返信ハガキはまだ届いていません
+                    まだこの打牌についての理由・考察はありません
                   </p>
                 ) : (
                   filteredComments.map((comment) => {
@@ -793,11 +793,11 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({
                 )}
               </div>
 
-              {/* 追加で追伸ハガキを投函 */}
+              {/* 追加コメント投稿 */}
               <form onSubmit={handleAddPostComment} className="pt-2 flex gap-2">
                 <input
                   type="text"
-                  placeholder="追伸で考察や理由を一筆投函..."
+                  placeholder="追加で考察や理由を投稿..."
                   value={additionalComment}
                   onChange={(e) => setAdditionalComment(e.target.value)}
                   className="flex-1 text-xs p-2.5 rounded-xl border border-[#D5CEBE] bg-[#FBF9F4] text-[#262422] placeholder-[#A8A090] focus:outline-none focus:border-[#1E3A5F] focus:ring-1 focus:ring-[#1E3A5F] font-serif"
@@ -809,7 +809,7 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({
                     !additionalComment.trim() ? 'opacity-40 cursor-not-allowed' : ''
                   }`}
                 >
-                  投函
+                  投稿
                 </button>
               </form>
             </div>
@@ -820,7 +820,7 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({
                 onClick={handleReset}
                 className="text-xs font-bold text-[#7A7265] hover:text-[#C82C26] underline cursor-pointer font-serif"
               >
-                別のハガキとして解き直す
+                もう一度解き直す
               </button>
             </div>
           </div>

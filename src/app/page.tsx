@@ -136,7 +136,7 @@ export default function Home() {
         setIsAdmin(true);
         alert('管理者認証に成功しました。この端末限定で問題の削除が可能です。');
       } else {
-        alert('パスワードが違いです。');
+        alert('パスワードが違います。');
       }
     }
   };
@@ -177,10 +177,10 @@ export default function Home() {
       {/* 最上部：エアメール風のアクセントライン */}
       <div className="w-full h-1.5 airmail-stripe border-b border-[#D5CEBE]" />
 
-      {/* レトロモダン郵便局ヘッダー */}
+      {/* レトロモダンヘッダー */}
       <header className="sticky top-0 z-40 bg-[#FBF9F4] border-b-2 border-[#C82C26] shadow-sm">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          {/* 郵便局看板風ロゴ */}
+          {/* 看板風ロゴ */}
           <div className="flex items-center gap-3">
             <div className="relative w-9 h-9 rounded-xl bg-[#C82C26] text-white flex items-center justify-center font-black text-lg shadow-sm border border-[#961E1A] select-none">
               <span className="font-serif">雀</span>
@@ -197,8 +197,8 @@ export default function Home() {
                   </span>
                 </h1>
               </div>
-              <p className="text-[10px] text-[#7A7265] hidden sm:block tracking-wider">
-                麻雀「何切る」郵便局・戦術投票所
+              <p className="text-[10px] text-[#7A7265] hidden sm:block tracking-wider font-medium">
+                麻雀「何切る」投稿・投票プラットフォーム
               </p>
             </div>
           </div>
@@ -208,14 +208,14 @@ export default function Home() {
             {isSupabaseConfigured && (
               <div className="hidden sm:inline-flex items-center gap-1.5 text-xs text-[#1E3A5F] bg-[#E8EFF7] px-2.5 py-1 rounded-full border border-[#1E3A5F]/30 font-medium">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#1E3A5F] animate-pulse" />
-                <span className="text-[11px] font-mono tracking-tight">便箋同期中</span>
+                <span className="text-[11px] font-sans tracking-tight">クラウド同期中</span>
               </div>
             )}
 
             {/* 管理者モード切り替え */}
             {isAdmin ? (
               <div className="flex items-center gap-1 bg-[#F5EEDB] text-[#8C6420] text-xs px-2.5 py-1 rounded-lg border border-[#D5C29A] shadow-xs">
-                <span className="text-[11px] font-bold">📮 局長権限</span>
+                <span className="text-[11px] font-bold">🛡️ 管理者</span>
                 <button
                   type="button"
                   onClick={handleAdminAuth}
@@ -233,7 +233,7 @@ export default function Home() {
                 title="管理者ログイン"
               >
                 <span className="text-xs">🔑</span>
-                <span className="text-[11px] font-medium">局長</span>
+                <span className="text-[11px] font-medium">管理者</span>
               </button>
             )}
 
@@ -250,31 +250,30 @@ export default function Home() {
         </div>
       </header>
 
-      {/* ヒーローセクション（郵便ハガキの通信欄・切手モチーフ） */}
+      {/* ヒーローセクション */}
       <section className="relative overflow-hidden py-9 sm:py-11 px-4 border-b border-[#D5CEBE] bg-[#F4EFE6]">
-        {/* 背景の郵便消印スタンプ装飾 */}
+        {/* 背景の消印スタンプ装飾 */}
         <div className="absolute -right-6 -bottom-6 w-36 h-36 rounded-full border-2 border-[#1E3A5F]/15 flex items-center justify-center pointer-events-none rotate-12">
           <div className="w-28 h-28 rounded-full border border-[#1E3A5F]/15 flex flex-col items-center justify-center text-[10px] text-[#1E3A5F]/20 font-mono">
             <span>JANPOST</span>
-            <span>2026.11.12</span>
+            <span>2026.11.13</span>
             <span>TOKYO</span>
           </div>
         </div>
 
         <div className="relative max-w-3xl mx-auto text-center space-y-3">
-          {/* 切手風のヘッダーバッジ */}
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#FBF9F4] border border-[#D5CEBE] text-[11px] font-medium text-[#7A7265] shadow-xs">
-            <span className="text-xs text-[#C82C26]">〒</span>
-            <span className="tracking-wide">手紙を投函するように問い、みんなの回答が届く場所</span>
+            <span className="text-xs text-[#C82C26]">🀄</span>
+            <span className="tracking-wide">麻雀「何切る」戦術分析・投票プラットフォーム</span>
           </div>
 
           <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#262422] tracking-tight font-serif leading-tight">
             迷った一打を投函する。<br className="hidden sm:inline" />
-            雀士の便箋で解く。
+            雀士の統計で解く。
           </h2>
 
           <p className="text-xs sm:text-sm text-[#5C5549] max-w-xl mx-auto leading-relaxed">
-            牌姿や対局写真をハガキとして投稿。全国の雀士たちから届く打牌割合・戦術理由・消印考察から、迷いなき最善手を見つけ出せます。
+            手牌14枚から打牌を選択し、全国の雀士の選択割合・打牌理由・戦術解説を確認できます。
           </p>
 
           <div className="flex items-center justify-center gap-6 pt-2 text-xs font-medium text-[#7A7265] font-mono">
@@ -282,14 +281,14 @@ export default function Home() {
               <span className="text-[#C82C26] font-bold tabular-nums text-sm">
                 {problems.length}
               </span>
-              <span>通の便箋</span>
+              <span>問登録</span>
             </div>
             <span className="text-[#D5CEBE]">|</span>
             <div className="flex items-center gap-1.5">
               <span className="text-[#1E3A5F] font-bold tabular-nums text-sm">
                 {totalVotesAcrossAll.toLocaleString()}
               </span>
-              <span>通の返信投票</span>
+              <span>回答集計</span>
             </div>
           </div>
         </div>
@@ -297,7 +296,7 @@ export default function Home() {
 
       {/* メインコンテンツ */}
       <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
-        {/* レトロな仕分け棚風フィルター */}
+        {/* レベル切り替えタブ */}
         <div className="w-full flex justify-center mb-6">
           <div className="inline-flex p-1.5 rounded-2xl bg-[#DCD5C6] border border-[#C5BDAA] overflow-x-auto max-w-full shadow-inner gap-1">
             <button
@@ -309,7 +308,7 @@ export default function Home() {
                   : 'text-[#5C5549] hover:text-[#262422]'
               }`}
             >
-              <span>📯 すべての便箋</span>
+              <span>すべて</span>
               <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-[#EAE4D7] text-[#5C5549]">
                 {problems.length}
               </span>
@@ -325,7 +324,7 @@ export default function Home() {
               }`}
             >
               <span className="w-2 h-2 rounded-full bg-emerald-400" />
-              <span>初級便（受け入れ）</span>
+              <span>初級（基本の受け入れ）</span>
             </button>
 
             <button
@@ -338,7 +337,7 @@ export default function Home() {
               }`}
             >
               <span className="w-2 h-2 rounded-full bg-sky-300" />
-              <span>中級便（打点と速度）</span>
+              <span>中級（打点とスピード）</span>
             </button>
 
             <button
@@ -351,7 +350,7 @@ export default function Home() {
               }`}
             >
               <span className="w-2 h-2 rounded-full bg-purple-300" />
-              <span>上級便（押し引き）</span>
+              <span>上級（押し引きと状況判断）</span>
             </button>
 
             <button
@@ -363,19 +362,19 @@ export default function Home() {
                   : 'text-[#5C5549] hover:text-[#262422]'
               }`}
             >
-              <span>📮 雀士投稿便</span>
+              <span>ユーザー投稿</span>
             </button>
           </div>
         </div>
 
-        {/* 並び替えコントローラー & 消印件数 */}
+        {/* 並び替えコントローラー & 件数 */}
         <div className="flex items-center justify-between gap-3 mb-6 px-1 text-xs">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-[#C82C26]" />
             <span className="font-bold text-[#262422] font-mono tabular-nums">
               {processedProblems.length}
             </span>
-            <span className="text-[#7A7265]">通の便箋を表示中</span>
+            <span className="text-[#7A7265]">件の問題を表示中</span>
           </div>
 
           <div className="inline-flex items-center bg-[#DCD5C6] p-0.5 rounded-xl border border-[#C5BDAA]">
@@ -410,28 +409,28 @@ export default function Home() {
                   : 'text-[#5C5549] hover:text-[#262422]'
               }`}
             >
-              返信数順
+              回答数順
             </button>
           </div>
         </div>
 
-        {/* 問題一覧（ハガキカードの連続） */}
+        {/* 問題一覧 */}
         <div className="space-y-8 flex flex-col items-center">
           {isLoading ? (
             <div className="text-center py-20 space-y-3">
               <div className="w-9 h-9 border-3 border-[#C82C26] border-t-transparent rounded-full animate-spin mx-auto" />
-              <p className="text-xs text-[#5C5549] font-medium">全国の郵便受けから集荷中...</p>
+              <p className="text-xs text-[#5C5549] font-medium">クラウドデータベースから読み込み中...</p>
             </div>
           ) : processedProblems.length === 0 ? (
             <div className="text-center py-16 px-6 postcard-paper rounded-2xl max-w-md w-full space-y-3">
               <div className="w-14 h-14 rounded-2xl bg-[#EAE4D7] flex items-center justify-center text-3xl mx-auto border border-[#D5CEBE]">
-                📭
+                🀆
               </div>
               <p className="text-sm font-bold text-[#262422] font-serif">
-                この郵便受けにはまだ便箋がありません
+                該当する問題がまだありません
               </p>
               <p className="text-xs text-[#7A7265]">
-                あなたが一番最初の問題をポストに投函してみませんか？
+                あなたが最初の問題を投函してみませんか？
               </p>
               <button
                 type="button"
@@ -439,7 +438,7 @@ export default function Home() {
                 className="btn-postbox mt-2 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold cursor-pointer"
               >
                 <span>📮</span>
-                <span>最初の問題を投函する</span>
+                <span>問題を投函する</span>
               </button>
             </div>
           ) : (
@@ -457,18 +456,18 @@ export default function Home() {
         </div>
       </main>
 
-      {/* フッター（レトロな郵便局風） */}
+      {/* フッター */}
       <footer className="mt-16 bg-[#F4EFE6] border-t-2 border-[#C82C26] py-10 text-center text-xs text-[#5C5549] space-y-2">
         <div className="flex items-center justify-center gap-2">
           <div className="w-5 h-5 rounded bg-[#C82C26] text-white flex items-center justify-center font-bold text-[10px] font-serif">
-            〒
+            雀
           </div>
           <p className="font-bold text-[#262422] font-serif">
-            雀ポスト (JanPost) - レトロモダン麻雀何切る郵便局
+            雀ポスト (JanPost) - 麻雀何切る投稿・投票プラットフォーム
           </p>
         </div>
         <p className="text-[11px] text-[#7A7265]">
-          手紙を投函するように何切る問題を投稿し、みんなの回答がハガキで届く場所
+          迷った一打を投函し、雀士たちの統計と考察が集まる場所
         </p>
         <p className="text-[#7A7265] pt-1 font-mono text-[11px]">
           <button
@@ -487,13 +486,13 @@ export default function Home() {
           <div className="pt-2">
             <span className="inline-flex items-center gap-1.5 bg-[#F5EEDB] text-[#8C6420] px-3 py-1 rounded-full text-[11px] border border-[#D5C29A]">
               <span className="w-1.5 h-1.5 rounded-full bg-[#124D27]" />
-              <span>局長端末として認証中（全便箋の削除権限あり）</span>
+              <span>管理者端末として認証中（全問題の削除権限あり）</span>
               <button
                 type="button"
                 onClick={handleAdminAuth}
                 className="text-[#C82C26] hover:underline ml-1 font-bold cursor-pointer"
               >
-                退席
+                ログアウト
               </button>
             </span>
           </div>

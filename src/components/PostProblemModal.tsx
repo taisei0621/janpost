@@ -316,10 +316,10 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
             </span>
             <div>
               <h2 className="text-base sm:text-lg font-bold text-[#262422] font-serif">
-                新しい何切る問題を投函する
+                何切る問題を投函する
               </h2>
               <p className="text-[10px] text-[#7A7265]">
-                牌姿や対局写真をハガキとして郵便ポストに投函します
+                手牌や対局写真から何切る問題を作成して投函できます
               </p>
             </div>
           </div>
@@ -418,7 +418,7 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="sm:col-span-2">
               <label className="block text-xs font-bold text-[#262422] mb-1 font-serif">
-                便箋の件名（問題タイトル）
+                問題タイトル
               </label>
               <input
                 type="text"
@@ -430,16 +430,16 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
             </div>
             <div>
               <label className="block text-xs font-bold text-[#262422] mb-1 font-serif">
-                便箋の種別（難易度）
+                対象難易度
               </label>
               <select
                 value={level}
                 onChange={(e) => setLevel(e.target.value as ProblemLevel)}
                 className="w-full text-xs p-2.5 rounded-xl border border-[#D5CEBE] bg-[#FBF9F4] text-[#262422] focus:outline-none focus:border-[#1E3A5F] focus:ring-1 focus:ring-[#1E3A5F] font-serif"
               >
-                <option value="beginner">初級便（基本牌効率）</option>
-                <option value="intermediate">中級便（手役・点差）</option>
-                <option value="advanced">上級便（押し引き・状況判断）</option>
+                <option value="beginner">初級（基本牌効率）</option>
+                <option value="intermediate">中級（打点とスピード）</option>
+                <option value="advanced">上級（押し引きと状況判断）</option>
               </select>
             </div>
           </div>
@@ -1126,11 +1126,11 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
             </div>
           </div>
 
-          {/* 解説と差出人名 */}
+          {/* 解説と出題者名 */}
           <div className="space-y-3">
             <div>
               <label className="block text-xs font-bold text-[#262422] mb-1 font-serif">
-                戦術解説文
+                戦術解説
               </label>
               <textarea
                 rows={3}
@@ -1143,7 +1143,7 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
 
             <div>
               <label className="block text-xs font-bold text-[#262422] mb-1 font-serif">
-                差出人の記名（ペンネーム）
+                出題者のお名前（ペンネーム）
               </label>
               <input
                 type="text"
@@ -1169,7 +1169,7 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
               className="btn-postbox px-6 py-2.5 text-xs font-bold rounded-xl cursor-pointer flex items-center gap-1.5"
             >
               <span>📮</span>
-              <span>この内容でポストに投函する</span>
+              <span>この内容で問題を投函する</span>
             </button>
           </div>
         </form>
