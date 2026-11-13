@@ -268,18 +268,29 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({
               <span>{problem.createdAt}</span>
             </div>
 
-            {/* いいねスタンプ */}
+            {/* いいねボタン（ハート） */}
             <button
               type="button"
               onClick={handleToggleLike}
               className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold transition-all border cursor-pointer select-none ${
                 isLiked
-                  ? 'bg-[#C82C26] border-[#961E1A] text-white shadow-xs'
+                  ? 'bg-[#FDF2F2] border-[#C82C26] text-[#C82C26] shadow-xs'
                   : 'bg-[#FBF9F4] border-[#D5CEBE] text-[#7A7265] hover:border-[#C82C26] hover:text-[#C82C26]'
               }`}
               title="いいね"
             >
-              <span className="text-xs">📮</span>
+              <svg
+                className={`w-3.5 h-3.5 transition-transform ${isLiked ? 'fill-[#C82C26] text-[#C82C26] scale-110' : 'fill-none text-[#7A7265]'}`}
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                />
+              </svg>
               <span className="font-mono tabular-nums">{likeCount}</span>
             </button>
 
