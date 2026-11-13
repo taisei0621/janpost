@@ -437,9 +437,9 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
                 onChange={(e) => setLevel(e.target.value as ProblemLevel)}
                 className="w-full text-xs p-2.5 rounded-xl border border-[#D5CEBE] bg-[#FBF9F4] text-[#262422] focus:outline-none focus:border-[#1E3A5F] focus:ring-1 focus:ring-[#1E3A5F] font-serif"
               >
-                <option value="beginner">初級（基本牌効率）</option>
-                <option value="intermediate">中級（打点とスピード）</option>
-                <option value="advanced">上級（押し引きと状況判断）</option>
+                <option value="beginner">初級</option>
+                <option value="intermediate">中級</option>
+                <option value="advanced">上級</option>
               </select>
             </div>
           </div>

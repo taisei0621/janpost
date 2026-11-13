@@ -324,7 +324,7 @@ export default function Home() {
               }`}
             >
               <span className="w-2 h-2 rounded-full bg-emerald-400" />
-              <span>初級（基本の受け入れ）</span>
+              <span>初級</span>
             </button>
 
             <button
@@ -337,7 +337,7 @@ export default function Home() {
               }`}
             >
               <span className="w-2 h-2 rounded-full bg-sky-300" />
-              <span>中級（打点とスピード）</span>
+              <span>中級</span>
             </button>
 
             <button
@@ -350,7 +350,7 @@ export default function Home() {
               }`}
             >
               <span className="w-2 h-2 rounded-full bg-purple-300" />
-              <span>上級（押し引きと状況判断）</span>
+              <span>上級</span>
             </button>
 
             <button
