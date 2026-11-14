@@ -648,7 +648,8 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({
                                   key={`self-meld-${mIdx}-${tIdx}`}
                                   tileId={t.tileId}
                                   size="sm"
-                                  isReach={t.isReach}
+                                  isHorizontal={t.isHorizontal}
+                                  showReachLabel={false}
                                   disabled
                                 />
                               ))}

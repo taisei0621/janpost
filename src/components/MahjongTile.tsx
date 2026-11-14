@@ -15,6 +15,8 @@ interface MahjongTileProps {
   showTsumoLabel?: boolean;
   isTsumogiri?: boolean; // true = ツモ切り（薄暗く表示）
   isReach?: boolean;     // true = リーチ宣言牌（横向き）
+  isHorizontal?: boolean; // true = 横向き牌（鳴き牌など、「立直」ラベルは出さない）
+  showReachLabel?: boolean; // true = 「立直」ラベルを表示する（isReach時のみ有効）
 }
 
 export const MahjongTile: React.FC<MahjongTileProps> = ({
@@ -29,16 +31,24 @@ export const MahjongTile: React.FC<MahjongTileProps> = ({
   showTsumoLabel = false,
   isTsumogiri = false,
   isReach = false,
+  isHorizontal = false,
+  showReachLabel,
 }) => {
   const [imgError, setImgError] = useState(false);
   const tile = parseTileId(tileId);
   const display = getTileDisplay(tileId);
 
+  // 横向き判定（リーチ宣言牌、または鳴き牌の横向き）
+  const isHorizontalOriented = Boolean(isReach || isHorizontal);
+
+  // リーチラベルの表示判定（鳴き牌には絶対に出さず、河のリーチ宣言牌のみ表示）
+  const shouldShowReach = showReachLabel !== undefined ? showReachLabel : (isReach && !isHorizontal);
+
   // 画像サイズの選択（河や極小は 's'、手牌や大表示は 'l'）
   const imageSize = size === 'xs' || size === 'sm' ? 's' : 'l';
   const imageSrc = getTileImagePath(tileId, {
     size: imageSize,
-    isReach,
+    isReach: isHorizontalOriented,
     emb: true,
   });
 
@@ -48,16 +58,16 @@ export const MahjongTile: React.FC<MahjongTileProps> = ({
   // 縦向き比率: 66x90 (1:1.364)
   // 横向き比率: 90x66 (1.364:1)
   const sizeClasses = {
-    xs: isReach
+    xs: isHorizontalOriented
       ? 'w-[22px] h-[16px] sm:w-[33px] sm:h-[24px]'
       : 'w-[16px] h-[22px] sm:w-[24px] sm:h-[33px]',
-    sm: isReach
+    sm: isHorizontalOriented
       ? 'w-[42px] h-[31px]'
       : 'w-[31px] h-[42px]',
-    md: isReach
+    md: isHorizontalOriented
       ? 'w-[45px] h-[33px] sm:w-[52px] sm:h-[38px]'
       : 'w-[25px] h-[34px] xs:w-[28px] xs:h-[38px] sm:w-[38px] sm:h-[52px]',
-    lg: isReach
+    lg: isHorizontalOriented
       ? 'w-[68px] h-[50px] sm:w-[82px] sm:h-[60px]'
       : 'w-[50px] h-[68px] sm:w-[60px] sm:h-[82px]',
   };
@@ -84,8 +94,8 @@ export const MahjongTile: React.FC<MahjongTileProps> = ({
         </span>
       )}
 
-      {/* リーチ宣言ラベル */}
-      {isReach && (
+      {/* リーチ宣言ラベル（※鳴き牌には絶対に出さず、河のリーチ宣言牌のみ表示） */}
+      {shouldShowReach && (
         <span className="absolute top-0 left-1/2 -translate-x-1/2 z-20 whitespace-nowrap px-1 text-[7px] font-bold rounded bg-rose-600 text-white shadow-xs pointer-events-none">
           立直
         </span>

@@ -226,7 +226,8 @@ export interface FormattedMeld {
   from: MeldFrom;
   tiles: Array<{
     tileId: string;
-    isReach: boolean; // 誰から鳴いたかによって横向きにする
+    isHorizontal: boolean; // 誰から鳴いたかによって横向きにする（立直ではない）
+    isReach?: boolean;     // 互換性用（常にfalse）
   }>;
 }
 
@@ -258,7 +259,8 @@ export function parseMeldDisplay(meld: string | MeldInfo): FormattedMeld {
 
     const formattedTiles = tilesList.map((tid, idx) => ({
       tileId: tid,
-      isReach: idx === horizontalIndex,
+      isHorizontal: idx === horizontalIndex,
+      isReach: false,
     }));
 
     const fromLabelMap: Record<MeldFrom, string> = {
@@ -306,7 +308,8 @@ export function parseMeldDisplay(meld: string | MeldInfo): FormattedMeld {
 
   const formattedTiles = tileIds.map((tid, idx) => ({
     tileId: tid,
-    isReach: idx === horizontalIndex,
+    isHorizontal: idx === horizontalIndex,
+    isReach: false,
   }));
 
   return {

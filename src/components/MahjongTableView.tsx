@@ -136,7 +136,8 @@ export const MahjongTableView: React.FC<MahjongTableViewProps> = ({ problem }) =
                           key={`mt-${seat.wind}-${mIdx}-${tIdx}`}
                           tileId={t.tileId}
                           size="xs"
-                          isReach={t.isReach}
+                          isHorizontal={t.isHorizontal}
+                          showReachLabel={false}
                           disabled
                         />
                       ))}

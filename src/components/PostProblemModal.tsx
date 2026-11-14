@@ -946,7 +946,8 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
                                       key={`mt-tag-${mIdx}-${tIdx}`}
                                       tileId={t.tileId}
                                       size="xs"
-                                      isReach={t.isReach}
+                                      isHorizontal={t.isHorizontal}
+                                      showReachLabel={false}
                                       disabled
                                     />
                                   ))}
@@ -1605,7 +1606,7 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
 
                       return (
                         <div key={`mbt-${idx}`} className="relative cursor-pointer" onClick={() => handleMeldBuilderRemoveTile(idx)}>
-                          <MahjongTile tileId={tid} size="sm" isReach={isHorizontal} disabled />
+                          <MahjongTile tileId={tid} size="sm" isHorizontal={isHorizontal} showReachLabel={false} disabled />
                           <span className="absolute -top-1 -right-1 bg-black/80 text-white rounded-full text-[8px] w-3.5 h-3.5 flex items-center justify-center font-bold">
                             &times;
                           </span>

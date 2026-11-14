@@ -86,7 +86,8 @@ export const MahjongRiver: React.FC<MahjongRiverProps> = ({
                           key={`rm-${mIdx}-${tIdx}`}
                           tileId={t.tileId}
                           size="xs"
-                          isReach={t.isReach}
+                          isHorizontal={t.isHorizontal}
+                          showReachLabel={false}
                           disabled
                         />
                       ))}
