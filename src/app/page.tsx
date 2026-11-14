@@ -19,7 +19,7 @@ import { isSupabaseConfigured } from '../utils/supabaseClient';
 
 export default function Home() {
   const [problems, setProblems] = useState<Problem[]>(INITIAL_PROBLEMS);
-  const [selectedFilter, setSelectedFilter] = useState<'all' | ProblemLevel | 'user'>('all');
+  const [selectedFilter, setSelectedFilter] = useState<'all' | ProblemLevel | 'meld' | 'user'>('all');
   const [sortOrder, setSortOrder] = useState<'newest' | 'popular' | 'votes'>('newest');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -145,6 +145,7 @@ export default function Home() {
   const processedProblems = useMemo(() => {
     const filtered = problems.filter((p) => {
       if (selectedFilter === 'all') return true;
+      if (selectedFilter === 'meld') return p.problemType === 'meld';
       if (selectedFilter === 'user') return p.author !== '公式' && !p.author.includes('公式');
       return p.level === selectedFilter;
     });
@@ -198,7 +199,7 @@ export default function Home() {
                 </h1>
               </div>
               <p className="text-[10px] text-[#7A7265] hidden sm:block tracking-wider font-medium">
-                麻雀「何切る」投稿・投票プラットフォーム
+                麻雀「何切る＆鳴き判断」投稿・投票プラットフォーム
               </p>
             </div>
           </div>
@@ -273,7 +274,7 @@ export default function Home() {
           </h2>
 
           <p className="text-xs sm:text-sm text-[#5C5549] max-w-xl mx-auto leading-relaxed">
-            手牌14枚から打牌を選択し、全国の雀士の選択割合・打牌理由・戦術解説を確認できます。
+            手牌から打牌を選択、または他家の捨て牌に対する鳴き（チー・ポン・カン・スルー）を判断し、全国の雀士の選択割合・理由・戦術解説を確認できます。
           </p>
 
           <div className="flex items-center justify-center gap-6 pt-2 text-xs font-medium text-[#7A7265] font-mono">
@@ -355,10 +356,28 @@ export default function Home() {
 
             <button
               type="button"
+              onClick={() => setSelectedFilter('meld')}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
+                selectedFilter === 'meld'
+                  ? 'bg-[#C82C26] text-white shadow-sm'
+                  : 'text-[#5C5549] hover:text-[#262422]'
+              }`}
+            >
+              <span>⚡</span>
+              <span>鳴くか問題</span>
+              <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full ${
+                selectedFilter === 'meld' ? 'bg-white/20 text-white' : 'bg-[#EAE4D7] text-[#5C5549]'
+              }`}>
+                {problems.filter((p) => p.problemType === 'meld').length}
+              </span>
+            </button>
+
+            <button
+              type="button"
               onClick={() => setSelectedFilter('user')}
               className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
                 selectedFilter === 'user'
-                  ? 'bg-[#C82C26] text-white shadow-sm'
+                  ? 'bg-[#8B5A2B] text-white shadow-sm'
                   : 'text-[#5C5549] hover:text-[#262422]'
               }`}
             >

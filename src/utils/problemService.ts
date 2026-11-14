@@ -1,4 +1,4 @@
-import { Problem, VoteComment } from '../types/mahjong';
+import { Problem, VoteComment, ProblemType, MeldTarget, MeldOption } from '../types/mahjong';
 import { INITIAL_PROBLEMS } from '../data/initialProblems';
 import { supabase, isSupabaseConfigured } from './supabaseClient';
 
@@ -11,14 +11,26 @@ const LOCAL_STORAGE_MY_PROBLEMS_KEY = 'janpost_my_created_problem_ids';
 const LOCAL_STORAGE_ADMIN_TOKEN_KEY = 'janpost_admin_authenticated';
 export const ADMIN_SECRET = 'janpost777';
 
-// note カラムに imageUrl, honba, doras を埋め込む/復元するヘルパー
+// note カラムに imageUrl, honba, doras, 鳴くか問題用データを埋め込む/復元するヘルパー
 // （Supabase の problems テーブルに専用カラムが存在しない環境でも確実に写真や追加メタデータが全端末同期されます）
 export function encodeNoteWithImage(
   note?: string,
   imageUrl?: string,
-  extra?: { honba?: number; doras?: string[] }
+  extra?: {
+    honba?: number;
+    doras?: string[];
+    problemType?: ProblemType;
+    meldTarget?: MeldTarget;
+    meldOptions?: MeldOption[];
+  }
 ): string | null {
-  const hasExtra = Boolean(extra?.honba || (extra?.doras && extra.doras.length > 1));
+  const hasExtra = Boolean(
+    extra?.honba ||
+    (extra?.doras && extra.doras.length > 1) ||
+    extra?.problemType ||
+    extra?.meldTarget ||
+    (extra?.meldOptions && extra.meldOptions.length > 0)
+  );
   if (!imageUrl && !note && !hasExtra) return null;
   if (!imageUrl && !hasExtra) return note || null;
   return JSON.stringify({
@@ -26,6 +38,9 @@ export function encodeNoteWithImage(
     imageUrl: imageUrl || undefined,
     honba: extra?.honba || undefined,
     doras: extra?.doras || undefined,
+    problemType: extra?.problemType || undefined,
+    meldTarget: extra?.meldTarget || undefined,
+    meldOptions: extra?.meldOptions || undefined,
   });
 }
 
@@ -34,11 +49,19 @@ export function decodeNoteWithImage(rawNote?: string | null): {
   imageUrl?: string;
   honba?: number;
   doras?: string[];
+  problemType?: ProblemType;
+  meldTarget?: MeldTarget;
+  meldOptions?: MeldOption[];
 } {
   if (!rawNote || typeof rawNote !== 'string') return {};
   if (
     rawNote.startsWith('{') &&
-    (rawNote.includes('"imageUrl"') || rawNote.includes('"honba"') || rawNote.includes('"doras"'))
+    (rawNote.includes('"imageUrl"') ||
+      rawNote.includes('"honba"') ||
+      rawNote.includes('"doras"') ||
+      rawNote.includes('"problemType"') ||
+      rawNote.includes('"meldTarget"') ||
+      rawNote.includes('"meldOptions"'))
   ) {
     try {
       const parsed = JSON.parse(rawNote);
@@ -47,6 +70,9 @@ export function decodeNoteWithImage(rawNote?: string | null): {
         imageUrl: parsed.imageUrl || undefined,
         honba: typeof parsed.honba === 'number' ? parsed.honba : undefined,
         doras: Array.isArray(parsed.doras) ? parsed.doras : undefined,
+        problemType: parsed.problemType || undefined,
+        meldTarget: parsed.meldTarget || undefined,
+        meldOptions: Array.isArray(parsed.meldOptions) ? parsed.meldOptions : undefined,
       };
     } catch {
       return { note: rawNote };
@@ -190,7 +216,15 @@ export async function getProblems(): Promise<Problem[]> {
           ...(initialCommentsMap[row.id] || []),
         ];
 
-        const { note: decodedNote, imageUrl: decodedImageUrl, honba: decodedHonba, doras: decodedDoras } = decodeNoteWithImage(row.note);
+        const {
+          note: decodedNote,
+          imageUrl: decodedImageUrl,
+          honba: decodedHonba,
+          doras: decodedDoras,
+          problemType: decodedProblemType,
+          meldTarget: decodedMeldTarget,
+          meldOptions: decodedMeldOptions,
+        } = decodeNoteWithImage(row.note);
         const cloudOverride = cloudProblemOverrides[row.id];
         const localProblem = localMap.get(row.id);
         const resolvedImageUrl =
@@ -236,6 +270,9 @@ export async function getProblems(): Promise<Problem[]> {
               imageUrl: localProblem.imageUrl,
               honba: localProblem.context.honba,
               doras: localProblem.context.doras,
+              problemType: localProblem.problemType,
+              meldTarget: localProblem.meldTarget,
+              meldOptions: localProblem.meldOptions,
             }),
           }]).then(() => {
             console.log('Auto-synced problem data to cloud for all devices:', row.id);
@@ -246,6 +283,9 @@ export async function getProblems(): Promise<Problem[]> {
           id: row.id,
           title: row.title,
           level: row.level,
+          problemType: row.problem_type || decodedProblemType || localProblem?.problemType || 'discard',
+          meldTarget: row.meld_target || decodedMeldTarget || localProblem?.meldTarget,
+          meldOptions: row.meld_options || decodedMeldOptions || localProblem?.meldOptions,
           imageUrl: resolvedImageUrl,
           context: {
             round: row.round,
@@ -301,6 +341,9 @@ export async function createProblem(newProblem: Problem): Promise<boolean> {
       {
         honba: newProblem.context.honba,
         doras: newProblem.context.doras,
+        problemType: newProblem.problemType,
+        meldTarget: newProblem.meldTarget,
+        meldOptions: newProblem.meldOptions,
       }
     );
 
@@ -308,6 +351,9 @@ export async function createProblem(newProblem: Problem): Promise<boolean> {
       id: newProblem.id,
       title: newProblem.title,
       level: newProblem.level,
+      problem_type: newProblem.problemType || 'discard',
+      meld_target: newProblem.meldTarget || null,
+      meld_options: newProblem.meldOptions || null,
       round: newProblem.context.round,
       turn: newProblem.context.turn,
       wind: newProblem.context.wind,
@@ -336,6 +382,9 @@ export async function createProblem(newProblem: Problem): Promise<boolean> {
         delete payload.scores;
         delete payload.players;
         delete payload.likes;
+        delete payload.problem_type;
+        delete payload.meld_target;
+        delete payload.meld_options;
         const { error: fallbackErr } = await supabase.from('problems').insert([payload]);
         if (fallbackErr) {
           console.error('Failed to insert problem to Supabase (fallback):', fallbackErr);

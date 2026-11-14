@@ -1,13 +1,13 @@
 'use client';
 
 import React from 'react';
-import { DiscardTile } from '../types/mahjong';
+import { DiscardTile, MeldInfo } from '../types/mahjong';
 import { MahjongTile } from './MahjongTile';
-import { parseMeldTiles } from '../utils/mahjongUtils';
+import { parseMeldDisplay } from '../utils/mahjongUtils';
 
 interface MahjongRiverProps {
   discards: DiscardTile[];
-  melds?: string[];
+  melds?: Array<string | MeldInfo>;
   windLabel?: string;
   isReach?: boolean;
   interactive?: boolean; // 作成時（トグル・削除可能）
@@ -67,27 +67,33 @@ export const MahjongRiver: React.FC<MahjongRiverProps> = ({
             <span>鳴き (副露):</span>
           </span>
           <div className="flex flex-wrap items-center gap-2">
-            {melds.map((meldStr, mIdx) => {
-              const { label, tileIds } = parseMeldTiles(meldStr);
+            {melds.map((meldItem, mIdx) => {
+              const formatted = parseMeldDisplay(meldItem);
               return (
                 <div
                   key={`river-meld-${mIdx}`}
                   className="inline-flex items-center gap-1 bg-[#104323] px-2 py-1 rounded-md border border-amber-400/50 shadow-sm"
                 >
-                  {label && (
+                  {formatted.label && (
                     <span className="text-[10px] text-amber-300 font-bold px-1">
-                      {label}
+                      {formatted.label}
                     </span>
                   )}
-                  {tileIds.length > 0 ? (
+                  {formatted.tiles.length > 0 ? (
                     <div className="flex items-center gap-0.5">
-                      {tileIds.map((tid, tIdx) => (
-                        <MahjongTile key={`rm-${mIdx}-${tIdx}`} tileId={tid} size="xs" disabled />
+                      {formatted.tiles.map((t, tIdx) => (
+                        <MahjongTile
+                          key={`rm-${mIdx}-${tIdx}`}
+                          tileId={t.tileId}
+                          size="xs"
+                          isReach={t.isReach}
+                          disabled
+                        />
                       ))}
                     </div>
                   ) : (
                     <span className="text-xs text-amber-200 font-bold px-1">
-                      {meldStr}
+                      {String(meldItem)}
                     </span>
                   )}
                   {interactive && onRemoveMeld && (
@@ -107,90 +113,84 @@ export const MahjongRiver: React.FC<MahjongRiverProps> = ({
         </div>
       )}
 
-      {discards.length === 0 ? (
-        <div className="py-6 text-center text-xs text-zinc-400">
-          捨て牌はありません
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {rows.map((rowTiles, rIdx) => {
-            const startIndex = rIdx * 6;
-            return (
-              <div key={`river-row-${rIdx}`} className="space-y-0.5">
-                {/* 段ラベル */}
-                <div className="flex items-center justify-between text-[9px] font-mono text-zinc-500 px-1">
-                  <span>{rowLabels[rIdx] || `第${rIdx + 1}段`}</span>
-                  <span>{rowTiles.length} / 6枚</span>
-                </div>
-
-                {/* 6枚の牌スロット */}
-                <div className="flex items-center gap-1 sm:gap-1.5 p-1.5 bg-emerald-900/10 dark:bg-black/20 rounded-lg min-h-12 border border-emerald-900/20 overflow-x-auto">
-                  {rowTiles.map((tile, i) => {
-                    const globalIdx = startIndex + i;
-                    const isTileReach = tile.isReach || (isReach && globalIdx === discards.length - 1);
-
-                    return (
-                      <div key={`d-${globalIdx}`} className="relative group shrink-0">
-                        <MahjongTile
-                          tileId={tile.tileId}
-                          size="sm"
-                          isTsumogiri={tile.isTsumogiri}
-                          isReach={isTileReach}
-                          onClick={interactive && onToggleTsumogiri ? () => onToggleTsumogiri(globalIdx) : undefined}
-                        />
-
-                        {/* 作成時のアクションボタン（ホバーで表示） */}
-                        {interactive && (
-                          <div className="absolute -top-1.5 -right-1 flex gap-0.5 z-20">
-                            {onToggleReach && (
-                              <button
-                                type="button"
-                                title="リーチ宣言牌トグル"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onToggleReach(globalIdx);
-                                }}
-                                className={`w-3.5 h-3.5 rounded-full text-[8px] font-bold flex items-center justify-center cursor-pointer shadow-xs ${
-                                  tile.isReach ? 'bg-red-600 text-white' : 'bg-zinc-200 text-zinc-600 hover:bg-red-500 hover:text-white'
-                                }`}
-                              >
-                                Ｒ
-                              </button>
-                            )}
-                            {onRemoveTile && (
-                              <button
-                                type="button"
-                                title="この牌を削除"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onRemoveTile(globalIdx);
-                                }}
-                                className="w-3.5 h-3.5 bg-red-600 hover:bg-red-700 text-white rounded-full text-[8px] font-bold flex items-center justify-center cursor-pointer shadow-xs"
-                              >
-                                &times;
-                              </button>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-
-                  {/* 空きスロット（6枚枠の視覚化） */}
-                  {Array.from({ length: Math.max(0, 6 - rowTiles.length) }).map((_, slotIdx) => (
-                    <div
-                      key={`empty-slot-${slotIdx}`}
-                      className="w-[31px] h-[42px] border border-dashed border-emerald-800/30 rounded-[3px] flex items-center justify-center text-[10px] text-emerald-800/40 select-none shrink-0"
-                    >
-                      {rowTiles.length + slotIdx + 1}
-                    </div>
-                  ))}
-                </div>
+      {/* 6枚×3段の河グリッド */}
+      <div className="space-y-2">
+        {discards.length === 0 ? (
+          <div className="text-center py-4 text-xs text-emerald-800/60 dark:text-emerald-300/50 font-bold">
+            捨て牌はまだありません
+          </div>
+        ) : (
+          rows.map((rowTiles, rIdx) => (
+            <div key={`row-${rIdx}`} className="space-y-0.5">
+              <div className="text-[10px] font-mono text-emerald-800/80 dark:text-emerald-400/70">
+                {rowLabels[rIdx] || `${rIdx + 1}段目`}
               </div>
-            );
-          })}
-        </div>
-      )}
+              <div className="flex items-center gap-1 flex-wrap">
+                {rowTiles.map((tile, cIdx) => {
+                  const globalIdx = rIdx * 6 + cIdx;
+                  return (
+                    <div
+                      key={`d-${globalIdx}-${tile.tileId}`}
+                      className="relative group flex flex-col items-center"
+                    >
+                      <MahjongTile
+                        tileId={tile.tileId}
+                        size="xs"
+                        isTsumogiri={tile.isTsumogiri}
+                        isReach={tile.isReach}
+                      />
+
+                      {/* 作成時（interactiveモード）のトグル操作コントロール */}
+                      {interactive && (
+                        <div className="flex items-center gap-0.5 mt-0.5">
+                          {onToggleTsumogiri && (
+                            <button
+                              type="button"
+                              onClick={() => onToggleTsumogiri(globalIdx)}
+                              title={tile.isTsumogiri ? '手出しに変更' : 'ツモ切りに変更'}
+                              className={`text-[8px] px-1 py-0.2 rounded font-bold transition-colors cursor-pointer ${
+                                tile.isTsumogiri
+                                  ? 'bg-zinc-700 text-zinc-300 hover:bg-zinc-600'
+                                  : 'bg-emerald-700 text-white hover:bg-emerald-600'
+                              }`}
+                            >
+                              {tile.isTsumogiri ? 'ツモ' : '手出'}
+                            </button>
+                          )}
+                          {onToggleReach && (
+                            <button
+                              type="button"
+                              onClick={() => onToggleReach(globalIdx)}
+                              title={tile.isReach ? '通常牌に戻す' : 'リーチ宣言牌（横向き）にする'}
+                              className={`text-[8px] px-1 py-0.2 rounded font-bold transition-colors cursor-pointer ${
+                                tile.isReach
+                                  ? 'bg-red-600 text-white hover:bg-red-700 ring-1 ring-white'
+                                  : 'bg-zinc-600 text-zinc-300 hover:bg-zinc-500'
+                              }`}
+                            >
+                              立直
+                            </button>
+                          )}
+                          {onRemoveTile && (
+                            <button
+                              type="button"
+                              onClick={() => onRemoveTile(globalIdx)}
+                              title="この牌を削除"
+                              className="text-[9px] text-red-400 hover:text-red-300 px-0.5 font-bold cursor-pointer"
+                            >
+                              &times;
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
     </div>
   );
 };

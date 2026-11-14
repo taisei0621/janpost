@@ -8,6 +8,18 @@ export interface Tile {
 }
 
 export type ProblemLevel = 'beginner' | 'intermediate' | 'advanced';
+export type ProblemType = 'discard' | 'meld'; // 何切る問題 | 鳴くか問題
+
+export type MeldType = 'chi' | 'pon' | 'daiminkan' | 'ankan' | 'kakan';
+export type MeldFrom = 'kami' | 'toimen' | 'shimo' | 'self'; // 上家、対面、下家、自分(暗槓)
+
+export interface MeldInfo {
+  type: MeldType;
+  from: MeldFrom;
+  tiles: string[]; // 牌ID配列 e.g. ["1m", "2m", "3m"], ["7z", "7z", "7z", "7z"]
+  calledTile?: string; // 相手から鳴いた牌（横向きにする牌）
+  label?: string; // e.g. "上家からチー", "対面からポン"
+}
 
 export interface RecommendedDiscard {
   tileId: string;
@@ -36,14 +48,31 @@ export interface PlayerSituation {
   wind: '東家' | '南家' | '西家' | '北家';
   score: number;
   discards: DiscardTile[];
-  melds: string[]; // 鳴き牌リスト 例: ["1m-2m-3m", "7z-7z-7z"]
+  melds: Array<string | MeldInfo>; // 文字列または詳細MeldInfo
   isReach?: boolean;
+}
+
+// 鳴くか問題の対象牌情報
+export interface MeldTarget {
+  fromWind: '東家' | '南家' | '西家' | '北家'; // 牌を捨てた家
+  tileId: string; // 捨てられた牌
+}
+
+// 鳴くか問題の選択肢（例: "chi-123m", "pon", "pass"）
+export interface MeldOption {
+  id: string; // 選択肢キー (tileIdとしてstatsやcommentsに記録)
+  action: 'chi' | 'pon' | 'kan' | 'pass';
+  label: string; // e.g. "チー (123m)", "ポン (白)", "スルー (鳴かない)"
+  consumedTiles?: string[]; // 鳴きに使う自分の手牌
 }
 
 export interface Problem {
   id: string;
   title: string;
   level: ProblemLevel;
+  problemType?: ProblemType; // デフォルトは 'discard' (何切る)
+  meldTarget?: MeldTarget;    // 鳴くか問題の場合の対象牌
+  meldOptions?: MeldOption[]; // 鳴くか問題の場合の選択肢
   imageUrl?: string; // 写真・スクショ投稿時の画像URL (Base64)
   context: {
     round: string; // e.g. "東1局"
@@ -59,12 +88,12 @@ export interface Problem {
     discardsInfo?: string; // テキスト要約
     note?: string;  // 状況補足
   };
-  hand: string[]; // 14枚のTileId配列 (最後がツモ牌、写真モード時は空配列も可)
+  hand: string[]; // 手牌のTileId配列 (門前なら14枚、1副露なら11枚、2副露なら8枚、3副露なら5枚、4副露なら2枚)
   discards: RecommendedDiscard[];
   explanation: string;
   author: string;
   createdAt: string;
-  stats: Record<string, number>; // 各TileIdの投票数
+  stats: Record<string, number>; // 各TileIdまたはMeldOptionIdの投票数
   likes?: number; // いいね数
-  comments?: VoteComment[]; // 回答者の打牌理由一覧
+  comments?: VoteComment[]; // 回答者の打牌/判断理由一覧
 }

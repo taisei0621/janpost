@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Problem, PlayerSituation, DiscardTile } from '../types/mahjong';
 import { MahjongTile } from './MahjongTile';
-import { parseMeldTiles, getDoraTiles } from '../utils/mahjongUtils';
+import { parseMeldDisplay, getDoraTiles } from '../utils/mahjongUtils';
 
 interface MahjongTableViewProps {
   problem: Problem;
@@ -117,32 +117,33 @@ export const MahjongTableView: React.FC<MahjongTableViewProps> = ({ problem }) =
         {/* 鳴き牌（副露） */}
         {melds.length > 0 && (
           <div className="mb-1 flex flex-wrap items-center justify-center gap-1">
-            {melds.map((meldStr, mIdx) => {
-              const { label, tileIds } = parseMeldTiles(meldStr);
+            {melds.map((meldItem, mIdx) => {
+              const formatted = parseMeldDisplay(meldItem);
               return (
                 <div
                   key={`meld-${seat.wind}-${mIdx}`}
                   className="inline-flex items-center gap-0.5 bg-[#0f3d20] px-1.5 py-0.5 rounded border border-amber-400/40 shadow-xs"
                 >
-                  {label && (
+                  {formatted.label && (
                     <span className="text-[7px] sm:text-[8px] text-amber-300 font-bold px-0.5">
-                      {label}
+                      {formatted.label}
                     </span>
                   )}
-                  {tileIds.length > 0 ? (
+                  {formatted.tiles.length > 0 ? (
                     <div className="flex items-center gap-0.5">
-                      {tileIds.map((tid, tIdx) => (
+                      {formatted.tiles.map((t, tIdx) => (
                         <MahjongTile
                           key={`mt-${seat.wind}-${mIdx}-${tIdx}`}
-                          tileId={tid}
+                          tileId={t.tileId}
                           size="xs"
+                          isReach={t.isReach}
                           disabled
                         />
                       ))}
                     </div>
                   ) : (
                     <span className="text-[8px] sm:text-[9px] text-amber-200 font-semibold px-0.5">
-                      {meldStr}
+                      {String(meldItem)}
                     </span>
                   )}
                 </div>
