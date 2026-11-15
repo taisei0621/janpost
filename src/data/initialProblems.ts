@@ -396,10 +396,22 @@ export const INITIAL_PROBLEMS: Problem[] = [
     },
     meldOptions: [
       {
+        id: 'chi-3m-4m',
+        action: 'chi',
+        label: '34mでチー (234m 打1m)',
+        consumedTiles: ['3m', '4m'],
+        formedTiles: ['2m', '3m', '4m'],
+        calledTile: '2m',
+        discardAfterMeld: '1m',
+      },
+      {
         id: 'chi-1m-3m',
         action: 'chi',
-        label: 'チー (1m-2m-3mでメンツ完成)',
+        label: '13mでカンチャンチー (123m 打4m)',
         consumedTiles: ['1m', '3m'],
+        formedTiles: ['1m', '2m', '3m'],
+        calledTile: '2m',
+        discardAfterMeld: '4m',
       },
       {
         id: 'pass',
@@ -484,10 +496,16 @@ export const INITIAL_PROBLEMS: Problem[] = [
     hand: ['1m', '3m', '4m', '0m', '6p', '7p', '8p', '2s', '3s', '4s', '7z', '7z', '7z'],
     discards: [
       {
-        tileId: 'chi-1m-3m',
+        tileId: 'chi-3m-4m',
         rank: 'best',
-        label: '本命（チーして即テンパイ・速度優先）',
-        reason: '上家の打2mをチーすれば、カン3m待ちの役牌・中（ドラ1）確定で即テンパイ。親の連荘を阻止し、満貫級の手を最速でアガり切るのが実戦的です。',
+        label: '本命（34mでチーして打1m・満貫テンパイ）',
+        reason: '34mでチーして不要な端牌1mを切れば、中暗刻＋赤ドラの満貫テンパイ！さらに手牌の赤5mにくっつく良形変化の余地も残せます。',
+      },
+      {
+        tileId: 'chi-1m-3m',
+        rank: 'good',
+        label: '妥協（13mでカンチャンチーして打4m）',
+        reason: '13mでチーしても満貫テンパイは取れますが、危険度の高い4mを放出し、赤5mの受け入れを弱めてしまいます。',
       },
       {
         tileId: 'pass',
@@ -496,20 +514,21 @@ export const INITIAL_PROBLEMS: Problem[] = [
         reason: 'スルーすれば門前で両面への変化や高打点リーチが狙えますが、テンパイ速度で一歩遅れます。',
       },
     ],
-    explanation: 'ドラが5mで手牌に中暗刻がある満貫確定の手牌です。上家から絶好のカン2mが出た局面。門前リーチの打点上昇（跳満狙い）よりも、テンパイ速度とアガリ率を最優先にして「チーして即テンパイ」を取るのが現代麻雀のセオリーです。',
+    explanation: '上家から絶好の2mが出た局面。この問題の核心は「鳴くか」だけでなく「どういう形で鳴くか」です。13mでチーして打4mとするよりも、34mでチーして不要な1mを払う方が、危険牌の先切りと赤5mのくっつき変化の両面で圧倒的に有利になります。',
     author: '公式',
     createdAt: '2026-11-13',
     likes: 64,
     stats: {
-      'chi-1m-3m': 89,
-      pass: 41,
+      'chi-3m-4m': 92,
+      'chi-1m-3m': 28,
+      pass: 34,
     },
     comments: [
       {
         id: 'c-meld-1',
         problemId: 'prob-meld-1',
-        tileId: 'chi-1m-3m',
-        comment: '中アンコ＋赤5mですでに満貫あるので即チー！テンパイ取らない手はない。',
+        tileId: 'chi-3m-4m',
+        comment: '34mでチーして端牌の1mを切るのが一番形が綺麗！赤5mのくっつきも残る。',
         createdAt: '2026-11-13 11:30',
       },
       {

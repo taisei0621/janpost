@@ -380,7 +380,7 @@ export function getDoraTiles(context?: { dora?: string; doras?: string[] } | nul
 }
 
 /**
- * 鳴くか問題用：手牌と他家の捨て牌から可能な鳴き選択肢を自動算出
+ * 鳴くか問題用：手牌と他家の捨て牌から可能な鳴き選択肢（どういう形で鳴くか、スルーするか）を精密に自動算出
  */
 export function calculateAvailableMeldOptions(
   hand: string[],
@@ -398,21 +398,65 @@ export function calculateAvailableMeldOptions(
   const isKami = (selfIdx + 3) % 4 === fromIdx;
 
   // 1. ポン判定（同種牌が2枚以上手牌にあるか）
-  const sameCount = hand.filter((t) => isSameTileType(t, targetTileId)).length;
-  if (sameCount >= 2) {
-    options.push({
-      id: `pon-${targetTileId}`,
-      action: 'pon',
-      label: `ポン`,
-    });
+  const matchingInHand = hand.filter((t) => isSameTileType(t, targetTileId));
+  if (matchingInHand.length >= 2) {
+    const hasRedInHand = matchingInHand.some((t) => parseTileId(t).isRed);
+    const nonRedCount = matchingInHand.filter((t) => !parseTileId(t).isRed).length;
+    const redCount = matchingInHand.filter((t) => parseTileId(t).isRed).length;
+
+    // 赤牌と黒牌の組み合わせが複数ある場合（例: 5m, 5m, 0m）
+    if (hasRedInHand && nonRedCount >= 2 && redCount >= 1) {
+      // 選択肢A: 黒牌2枚でポン（赤ドラを手牌に残す）
+      const blackTiles = matchingInHand.filter((t) => !parseTileId(t).isRed).slice(0, 2);
+      options.push({
+        id: `pon-${blackTiles.join('-')}`,
+        action: 'pon',
+        label: `黒牌でポン（赤ドラを手牌に残す）`,
+        consumedTiles: blackTiles,
+        formedTiles: [...blackTiles, targetTileId],
+        calledTile: targetTileId,
+      });
+
+      // 選択肢B: 赤ドラを使ってポン
+      const red = matchingInHand.find((t) => parseTileId(t).isRed)!;
+      const black = matchingInHand.find((t) => !parseTileId(t).isRed)!;
+      options.push({
+        id: `pon-${black}-${red}`,
+        action: 'pon',
+        label: `赤ドラを使ってポン`,
+        consumedTiles: [black, red],
+        formedTiles: [black, red, targetTileId],
+        calledTile: targetTileId,
+      });
+    } else {
+      // 通常のポン
+      const consumed = matchingInHand.slice(0, 2);
+      const isRedUsed = consumed.some((t) => parseTileId(t).isRed);
+      const isTargetRed = target.isRed;
+      const label = (isRedUsed || isTargetRed)
+        ? `ポン（赤ドラ含む）`
+        : `ポン`;
+      options.push({
+        id: `pon-${consumed.join('-')}`,
+        action: 'pon',
+        label,
+        consumedTiles: consumed,
+        formedTiles: [...consumed, targetTileId],
+        calledTile: targetTileId,
+      });
+    }
   }
 
   // 2. カン（大明槓）判定（同種牌が3枚手牌にあるか）
-  if (sameCount >= 3) {
+  if (matchingInHand.length >= 3) {
+    const consumed = matchingInHand.slice(0, 3);
     options.push({
-      id: `kan-${targetTileId}`,
+      id: `kan-${consumed.join('-')}`,
       action: 'kan',
       label: `カン（大明槓）`,
+      consumedTiles: consumed,
+      formedTiles: [...consumed, targetTileId],
+      calledTile: targetTileId,
     });
   }
 
@@ -421,42 +465,82 @@ export function calculateAvailableMeldOptions(
     const val = target.value;
     const suit = target.suit;
 
-    // パターンA: target が左端 (val, val+1, val+2) -> 手牌に val+1, val+2
+    // 可能な3連続の数字パターン
+    const patterns: Array<{
+      type: 'penchan' | 'kanchan' | 'ryanmen' | 'jun';
+      runValues: [number, number, number];
+      reqValues: [number, number];
+    }> = [];
+
+    // パターンA: targetが左端 (val, val+1, val+2) -> 手牌に val+1, val+2
     if (val <= 7) {
-      const has1 = hand.some((t) => parseTileId(t).suit === suit && parseTileId(t).value === val + 1);
-      const has2 = hand.some((t) => parseTileId(t).suit === suit && parseTileId(t).value === val + 2);
-      if (has1 && has2) {
-        options.push({
-          id: `chi-${val}${val + 1}${val + 2}${suit}`,
-          action: 'chi',
-          label: `チー (${val}-${val + 1}-${val + 2}${suit})`,
-        });
-      }
+      patterns.push({
+        type: val === 7 ? 'penchan' : 'ryanmen',
+        runValues: [val, val + 1, val + 2],
+        reqValues: [val + 1, val + 2],
+      });
     }
 
-    // パターンB: target が中央 (val-1, val, val+1) -> 手牌に val-1, val+1
+    // パターンB: targetが中央 (val-1, val, val+1) -> 手牌に val-1, val+1
     if (val >= 2 && val <= 8) {
-      const hasPrev = hand.some((t) => parseTileId(t).suit === suit && parseTileId(t).value === val - 1);
-      const hasNext = hand.some((t) => parseTileId(t).suit === suit && parseTileId(t).value === val + 1);
-      if (hasPrev && hasNext) {
-        options.push({
-          id: `chi-${val - 1}${val}${val + 1}${suit}`,
-          action: 'chi',
-          label: `カンチャンチー (${val - 1}-${val}-${val + 1}${suit})`,
-        });
-      }
+      patterns.push({
+        type: 'kanchan',
+        runValues: [val - 1, val, val + 1],
+        reqValues: [val - 1, val + 1],
+      });
     }
 
-    // パターンC: target が右端 (val-2, val-1, val) -> 手牌に val-2, val-1
+    // パターンC: targetが右端 (val-2, val-1, val) -> 手牌に val-2, val-1
     if (val >= 3) {
-      const has1 = hand.some((t) => parseTileId(t).suit === suit && parseTileId(t).value === val - 2);
-      const has2 = hand.some((t) => parseTileId(t).suit === suit && parseTileId(t).value === val - 1);
-      if (has1 && has2) {
-        options.push({
-          id: `chi-${val - 2}${val - 1}${val}${suit}`,
-          action: 'chi',
-          label: `チー (${val - 2}-${val - 1}-${val}${suit})`,
-        });
+      patterns.push({
+        type: val === 3 ? 'penchan' : 'ryanmen',
+        runValues: [val - 2, val - 1, val],
+        reqValues: [val - 2, val - 1],
+      });
+    }
+
+    for (const pat of patterns) {
+      const [vA, vB] = pat.reqValues;
+      const matchA = hand.filter((t) => parseTileId(t).suit === suit && parseTileId(t).value === vA);
+      const matchB = hand.filter((t) => parseTileId(t).suit === suit && parseTileId(t).value === vB);
+
+      // 手牌に両方の数字があるか
+      if (matchA.length > 0 && matchB.length > 0) {
+        // 赤牌と通常牌のバリエーションを展開
+        const uniqueA = Array.from(new Set(matchA));
+        const uniqueB = Array.from(new Set(matchB));
+
+        for (const tA of uniqueA) {
+          for (const tB of uniqueB) {
+            const consumed = sortTiles([tA, tB]);
+            const formed = sortTiles([tA, tB, targetTileId]);
+
+            const suitName = suit === 'm' ? 'm' : suit === 'p' ? 'p' : 's';
+            const aText = parseTileId(consumed[0]).isRed ? '赤5' : parseTileId(consumed[0]).value;
+            const bText = parseTileId(consumed[1]).isRed ? '赤5' : parseTileId(consumed[1]).value;
+            const consumedStr = `${aText}${bText}${suitName}`;
+
+            const formedStr = formed
+              .map((t) => (parseTileId(t).isRed ? '赤5' : parseTileId(t).value))
+              .join('') + suitName;
+
+            let typeName = '';
+            if (pat.type === 'kanchan') {
+              typeName = 'カンチャン';
+            }
+
+            const label = `${consumedStr}で${typeName}チー (${formedStr})`;
+
+            options.push({
+              id: `chi-${consumed.join('-')}`,
+              action: 'chi',
+              label,
+              consumedTiles: consumed,
+              formedTiles: formed,
+              calledTile: targetTileId,
+            });
+          }
+        }
       }
     }
   }

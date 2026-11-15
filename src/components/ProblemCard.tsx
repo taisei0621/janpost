@@ -669,9 +669,9 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({
         {isMeldProblem && !hasAnswered && (
           <div className="w-full max-w-lg mt-4 p-3.5 bg-[#F8F5EC] rounded-xl border border-[#D5CEBE] space-y-2.5">
             <span className="text-xs font-bold text-[#262422] block font-serif">
-              この牌に対するあなたのアクションを選択してください:
+              この牌に対するあなたのアクション（鳴き方・スルー）を選択してください:
             </span>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               {availableMeldOptions.map((opt) => {
                 const isSelected = selectedMeldOptionId === opt.id;
                 const isPass = opt.action === 'pass';
@@ -680,26 +680,63 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({
                     key={`opt-${opt.id}`}
                     type="button"
                     onClick={() => setSelectedMeldOptionId(opt.id)}
-                    className={`p-3 rounded-xl border-2 text-xs font-bold transition-all cursor-pointer flex items-center justify-between gap-2 text-left ${
+                    className={`p-3 rounded-xl border-2 text-xs font-bold transition-all cursor-pointer flex items-center justify-between gap-2.5 text-left ${
                       isSelected
                         ? isPass
-                          ? 'bg-[#1E3A5F] text-white border-[#1E3A5F] shadow-sm scale-[1.02]'
-                          : 'bg-[#C82C26] text-white border-[#C82C26] shadow-sm scale-[1.02]'
+                          ? 'bg-[#1E3A5F] text-white border-[#1E3A5F] shadow-sm scale-[1.01]'
+                          : 'bg-[#C82C26] text-white border-[#C82C26] shadow-sm scale-[1.01]'
                         : 'bg-[#FBF9F4] text-[#262422] border-[#D5CEBE] hover:border-[#C82C26]'
                     }`}
                   >
-                    <div className="flex items-center gap-2">
-                      <span className="text-base">{isPass ? '🚫' : '🀄'}</span>
-                      <div>
-                        <div className="font-serif font-bold text-xs sm:text-sm">{opt.label}</div>
-                        {opt.consumedTiles && opt.consumedTiles.length > 0 && (
+                    <div className="flex items-start gap-2.5 flex-1 min-w-0">
+                      <span className="text-lg shrink-0 mt-0.5">{isPass ? '🚫' : '🀄'}</span>
+                      <div className="flex flex-col gap-1.5 flex-1 min-w-0">
+                        <div className="font-serif font-bold text-xs sm:text-sm">
+                          {opt.label}
+                        </div>
+
+                        {/* 完成面子プレビュー */}
+                        {opt.formedTiles && opt.formedTiles.length > 0 ? (
+                          <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+                            <span className={`text-[9px] font-serif ${isSelected ? 'text-zinc-200' : 'text-[#7A7265]'}`}>
+                              完成形:
+                            </span>
+                            <div className="flex items-end gap-0.5 bg-black/10 px-1 py-0.5 rounded">
+                              {opt.formedTiles.map((t, idx) => {
+                                const isHorizontal = t === opt.calledTile || (opt.action === 'chi' && idx === 0 && !opt.calledTile);
+                                return (
+                                  <MahjongTile
+                                    key={`opt-tile-${opt.id}-${idx}`}
+                                    tileId={t}
+                                    size="xs"
+                                    isHorizontal={isHorizontal}
+                                    showReachLabel={false}
+                                    disabled
+                                  />
+                                );
+                              })}
+                            </div>
+                            {opt.discardAfterMeld && (
+                              <div className="flex items-center gap-1 ml-1">
+                                <span className={`text-[10px] font-bold ${isSelected ? 'text-amber-200' : 'text-[#C82C26]'}`}>
+                                  → 打
+                                </span>
+                                <MahjongTile tileId={opt.discardAfterMeld} size="xs" disabled />
+                              </div>
+                            )}
+                          </div>
+                        ) : opt.consumedTiles && opt.consumedTiles.length > 0 ? (
                           <div className={`text-[10px] ${isSelected ? 'opacity-90' : 'text-[#7A7265]'}`}>
                             使用牌: {opt.consumedTiles.map((t) => `${getTileDisplay(t).topText}${getTileDisplay(t).bottomText}`).join(' ')}
                           </div>
-                        )}
+                        ) : isPass ? (
+                          <div className={`text-[10px] ${isSelected ? 'opacity-90' : 'text-[#7A7265]'}`}>
+                            門前維持・スルー
+                          </div>
+                        ) : null}
                       </div>
                     </div>
-                    {isSelected && <span className="text-xs font-bold">✓</span>}
+                    {isSelected && <span className="text-xs font-bold shrink-0">✓</span>}
                   </button>
                 );
               })}
@@ -871,13 +908,35 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({
                     const isUserChoice = selectedChoice === key;
                     const isBest = bestDiscard?.tileId === key;
                     const choiceLabel = getChoiceLabel(key);
+                    const opt = isMeldProblem ? availableMeldOptions.find((o) => o.id === key) : undefined;
 
                     return (
                       <div key={key} className="space-y-1.5">
                         <div className="flex items-center justify-between text-xs font-semibold">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             {isMeldProblem ? (
-                              <span className="text-sm">{key === 'pass' ? '🚫' : '🀄'}</span>
+                              opt?.formedTiles && opt.formedTiles.length > 0 ? (
+                                <div className="flex items-end gap-0.5 bg-black/5 px-1 py-0.5 rounded">
+                                  {opt.formedTiles.map((t, idx) => (
+                                    <MahjongTile
+                                      key={`stat-f-${key}-${idx}`}
+                                      tileId={t}
+                                      size="xs"
+                                      isHorizontal={t === opt.calledTile || (opt.action === 'chi' && idx === 0 && !opt.calledTile)}
+                                      showReachLabel={false}
+                                      disabled
+                                    />
+                                  ))}
+                                  {opt.discardAfterMeld && (
+                                    <div className="flex items-center gap-0.5 ml-1">
+                                      <span className="text-[9px] text-[#C82C26] font-bold">打</span>
+                                      <MahjongTile tileId={opt.discardAfterMeld} size="xs" disabled />
+                                    </div>
+                                  )}
+                                </div>
+                              ) : (
+                                <span className="text-sm">{key === 'pass' ? '🚫' : '🀄'}</span>
+                              )
                             ) : (
                               <MahjongTile tileId={key} size="xs" disabled />
                             )}
@@ -992,8 +1051,36 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({
                         className="bg-[#FBF9F4] p-3.5 rounded-xl border border-[#D5CEBE] space-y-1.5 text-xs shadow-xs"
                       >
                         <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-1.5">
-                            {!isMeldProblem && <MahjongTile tileId={comment.tileId} size="xs" disabled />}
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            {isMeldProblem ? (
+                              (() => {
+                                const cOpt = availableMeldOptions.find((o) => o.id === comment.tileId);
+                                return cOpt?.formedTiles && cOpt.formedTiles.length > 0 ? (
+                                  <div className="flex items-end gap-0.5 bg-black/5 px-1 py-0.5 rounded">
+                                    {cOpt.formedTiles.map((t, idx) => (
+                                      <MahjongTile
+                                        key={`cmt-f-${comment.id}-${idx}`}
+                                        tileId={t}
+                                        size="xs"
+                                        isHorizontal={t === cOpt.calledTile || (cOpt.action === 'chi' && idx === 0 && !cOpt.calledTile)}
+                                        showReachLabel={false}
+                                        disabled
+                                      />
+                                    ))}
+                                    {cOpt.discardAfterMeld && (
+                                      <div className="flex items-center gap-0.5 ml-1">
+                                        <span className="text-[9px] text-[#C82C26] font-bold">打</span>
+                                        <MahjongTile tileId={cOpt.discardAfterMeld} size="xs" disabled />
+                                      </div>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <span className="text-xs">{comment.tileId === 'pass' ? '🚫' : '🀄'}</span>
+                                );
+                              })()
+                            ) : (
+                              <MahjongTile tileId={comment.tileId} size="xs" disabled />
+                            )}
                             <span className="font-bold text-[#262422] font-serif">
                               【{choiceLabel}】{isMeldProblem ? 'の判断理由' : 'を切る理由'}
                             </span>

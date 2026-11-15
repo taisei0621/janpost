@@ -58,12 +58,15 @@ export interface MeldTarget {
   tileId: string; // 捨てられた牌
 }
 
-// 鳴くか問題の選択肢（例: "chi-123m", "pon", "pass"）
+// 鳴くか問題の選択肢（どういう形で鳴くか、スルーするか）
 export interface MeldOption {
   id: string; // 選択肢キー (tileIdとしてstatsやcommentsに記録)
   action: 'chi' | 'pon' | 'kan' | 'pass';
-  label: string; // e.g. "チー (123m)", "ポン (白)", "スルー (鳴かない)"
-  consumedTiles?: string[]; // 鳴きに使う自分の手牌
+  label: string; // e.g. "12mでチー (123m)", "24mでチー (234m)", "ポン", "スルー"
+  consumedTiles?: string[]; // 鳴きに使う自分の手牌 e.g. ["1m", "2m"]
+  formedTiles?: string[];   // 完成する面子 e.g. ["1m", "2m", "3m"]
+  calledTile?: string;      // 相手から出た牌 (横向き表示用) e.g. "3m"
+  discardAfterMeld?: string; // 鳴いた後の打牌（任意） e.g. "8s"
 }
 
 export interface Problem {

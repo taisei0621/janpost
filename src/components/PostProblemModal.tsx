@@ -144,14 +144,55 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
     return calculateAvailableMeldOptions(hand, meldTargetTile, meldTargetFrom, wind);
   }, [problemType, hand, meldTargetTile, meldTargetFrom, wind]);
 
+  // 出題者が編集・打牌指定した選択肢（nullなら calculatedMeldOptions をそのまま使用）
+  const [customMeldOptions, setCustomMeldOptions] = useState<MeldOption[] | null>(null);
+
+  const currentMeldOptions = useMemo<MeldOption[]>(() => {
+    if (problemType !== 'meld') return [];
+    if (customMeldOptions && customMeldOptions.length > 0) return customMeldOptions;
+    return calculatedMeldOptions;
+  }, [problemType, customMeldOptions, calculatedMeldOptions]);
+
   // 選択肢が更新されたら、正解選択肢をデフォルト設定
   useEffect(() => {
-    if (problemType === 'meld' && calculatedMeldOptions.length > 0) {
-      if (!calculatedMeldOptions.some((o) => o.id === meldBestAction)) {
-        setMeldBestAction(calculatedMeldOptions[0].id);
+    if (problemType === 'meld' && currentMeldOptions.length > 0) {
+      if (!currentMeldOptions.some((o) => o.id === meldBestAction)) {
+        setMeldBestAction(currentMeldOptions[0].id);
       }
     }
-  }, [problemType, calculatedMeldOptions, meldBestAction]);
+  }, [problemType, currentMeldOptions, meldBestAction]);
+
+  // 鳴いた後の打牌指定ハンドラー
+  const handleSetOptionDiscard = (optId: string, discardTile: string) => {
+    const base = customMeldOptions ? [...customMeldOptions] : [...calculatedMeldOptions];
+    const updated = base.map((opt) => {
+      if (opt.id !== optId) return opt;
+      const cleanDiscard = discardTile.trim() || undefined;
+
+      const baseLabel = opt.label
+        .replace(/\s*打.+$/, '')
+        .replace(/\s*\(打[^\)]+\)/, '')
+        .replace(/\s*打[^\)]+\)/, ')');
+
+      let newLabel = baseLabel;
+      if (cleanDiscard) {
+        const dDisp = getTileDisplay(cleanDiscard);
+        const dText = `${dDisp.topText}${dDisp.bottomText}`;
+        if (newLabel.includes('(') && newLabel.endsWith(')')) {
+          newLabel = newLabel.slice(0, -1) + ` 打${dText})`;
+        } else {
+          newLabel = `${newLabel} (打${dText})`;
+        }
+      }
+
+      return {
+        ...opt,
+        discardAfterMeld: cleanDiscard,
+        label: newLabel,
+      };
+    });
+    setCustomMeldOptions(updated);
+  };
 
   if (!isOpen) return null;
 
@@ -355,7 +396,7 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
 
     // おすすめ回答の設定
     const bestActionKey = problemType === 'discard' ? bestDiscard : meldBestAction;
-    const selectedOptionObj = calculatedMeldOptions.find((o) => o.id === meldBestAction);
+    const selectedOptionObj = currentMeldOptions.find((o) => o.id === meldBestAction);
     const bestLabel = problemType === 'discard'
       ? '本命打牌'
       : selectedOptionObj?.label || '本命判断';
@@ -402,7 +443,7 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
       level,
       problemType,
       meldTarget: problemType === 'meld' ? { fromWind: meldTargetFrom, tileId: meldTargetTile } : undefined,
-      meldOptions: problemType === 'meld' ? calculatedMeldOptions : undefined,
+      meldOptions: problemType === 'meld' ? currentMeldOptions : undefined,
       imageUrl: postMode === 'photo' && uploadedImage ? uploadedImage : undefined,
       context: {
         round,
@@ -1403,40 +1444,133 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
               </div>
             </div>
           ) : (
-            /* 鳴くか問題の正解アクション選択 */
-            <div className="bg-[#F8F5EC] p-3.5 rounded-xl border-2 border-[#C82C26] space-y-2.5">
-              <label className="block text-xs font-bold text-[#C82C26] font-serif">
-                本命の判断（出題者が推奨する正解アクション）
-              </label>
+            /* 鳴くか問題の正解アクション・鳴き方選択肢設定 */
+            <div className="bg-[#F8F5EC] p-3.5 rounded-xl border-2 border-[#C82C26] space-y-3">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div>
+                  <label className="block text-xs font-bold text-[#C82C26] font-serif">
+                    ⚡ 鳴き方・判断の選択肢（どういう形で鳴くか）
+                  </label>
+                  <p className="text-[10px] text-[#7A7265] mt-0.5 font-serif">
+                    手牌から可能な鳴き方の組み合わせを自動算出しました。ラジオボタンで正解を選び、鳴いた後の打牌も指定できます。
+                  </p>
+                </div>
+                {customMeldOptions && (
+                  <button
+                    type="button"
+                    onClick={() => setCustomMeldOptions(null)}
+                    className="text-[11px] text-[#1E3A5F] hover:underline font-bold font-serif cursor-pointer"
+                  >
+                    🔄 自動算出に戻す
+                  </button>
+                )}
+              </div>
 
-              <div className="flex flex-wrap gap-2">
-                {calculatedMeldOptions.map((opt) => {
-                  const isSelected = meldBestAction === opt.id;
+              {/* 選択肢リスト */}
+              <div className="space-y-2">
+                {currentMeldOptions.map((opt, optIdx) => {
+                  const isBest = meldBestAction === opt.id;
+                  const isPass = opt.action === 'pass';
+
+                  // この鳴きで使用しない残りの手牌（打牌候補）
+                  const remainingTiles = opt.consumedTiles
+                    ? (() => {
+                        const temp = [...hand];
+                        for (const c of opt.consumedTiles) {
+                          const idx = temp.indexOf(c);
+                          if (idx !== -1) temp.splice(idx, 1);
+                        }
+                        return Array.from(new Set(temp));
+                      })()
+                    : Array.from(new Set(hand));
+
                   return (
-                    <button
-                      key={`mbo-${opt.id}`}
-                      type="button"
-                      onClick={() => setMeldBestAction(opt.id)}
-                      className={`px-3 py-2 rounded-xl text-xs font-bold transition-all border cursor-pointer flex items-center gap-1.5 shadow-2xs ${
-                        isSelected
-                          ? 'bg-[#C82C26] text-white border-[#C82C26] scale-105'
-                          : 'bg-[#FBF9F4] text-[#262422] border-[#D5CEBE] hover:border-[#C82C26]'
+                    <div
+                      key={`m-opt-row-${opt.id}-${optIdx}`}
+                      className={`p-2.5 rounded-xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 ${
+                        isBest
+                          ? 'bg-[#FDF2F2] border-[#C82C26] shadow-xs'
+                          : 'bg-[#FBF9F4] border-[#D5CEBE]'
                       }`}
                     >
-                      <span>{opt.action === 'pass' ? '🚫' : '🀄'}</span>
-                      <span>{opt.label}</span>
-                    </button>
+                      {/* 左側：正解ラジオボタン ＆ 面子プレビュー ＆ ラベル */}
+                      <div className="flex items-start sm:items-center gap-2.5 flex-1 min-w-0">
+                        <label className="flex items-center gap-2 cursor-pointer shrink-0 pt-0.5 sm:pt-0">
+                          <input
+                            type="radio"
+                            name="meldBestOptionRadio"
+                            checked={isBest}
+                            onChange={() => setMeldBestAction(opt.id)}
+                            className="text-[#C82C26] focus:ring-[#C82C26]"
+                          />
+                          <span className={`text-xs font-bold font-serif ${isBest ? 'text-[#C82C26]' : 'text-[#262422]'}`}>
+                            {isBest ? '★ 正解' : '正解にする'}
+                          </span>
+                        </label>
+
+                        {/* 面子プレビュー */}
+                        {opt.formedTiles && opt.formedTiles.length > 0 ? (
+                          <div className="flex items-end gap-0.5 bg-black/10 px-1.5 py-0.5 rounded shrink-0">
+                            {opt.formedTiles.map((t, idx) => (
+                              <MahjongTile
+                                key={`ft-${opt.id}-${idx}`}
+                                tileId={t}
+                                size="xs"
+                                isHorizontal={t === opt.calledTile}
+                                showReachLabel={false}
+                                disabled
+                              />
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-base shrink-0">{isPass ? '🚫' : '🀄'}</span>
+                        )}
+
+                        {/* ラベル表示 */}
+                        <div className="flex-1 min-w-0">
+                          <div className="font-serif font-bold text-xs text-[#262422] truncate">
+                            {opt.label}
+                          </div>
+                          {opt.consumedTiles && opt.consumedTiles.length > 0 && (
+                            <div className="text-[10px] text-[#7A7265] truncate font-serif">
+                              手牌から使用: {opt.consumedTiles.map((t) => `${getTileDisplay(t).topText}${getTileDisplay(t).bottomText}`).join(' ')}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* 右側：鳴いた後の打牌設定（鳴きの場合のみ） */}
+                      {!isPass && (
+                        <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-center pl-7 sm:pl-0">
+                          <span className="text-[11px] font-bold text-[#5C5549] font-serif">
+                            鳴いた後:
+                          </span>
+                          <select
+                            value={opt.discardAfterMeld || ''}
+                            onChange={(e) => handleSetOptionDiscard(opt.id, e.target.value)}
+                            className="text-xs p-1 rounded-lg border border-[#D5CEBE] bg-white font-mono text-[#262422]"
+                          >
+                            <option value="">（打牌を指定しない）</option>
+                            {remainingTiles.map((t) => (
+                              <option key={`opt-dis-${opt.id}-${t}`} value={t}>
+                                打 {getTileDisplay(t).topText}{getTileDisplay(t).bottomText} ({t})
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+                    </div>
                   );
                 })}
               </div>
 
               <div>
                 <label className="block text-[11px] font-bold text-[#5C5549] mb-1 font-serif">
-                  この判断を推奨するひとこと理由
+                  正解の判断（推奨理由）
                 </label>
                 <input
                   type="text"
-                  placeholder="例: 打点が高く速度を重視、親の現物を残してスルー"
+                  placeholder="例: 34mチーで不要な1mを切って満貫テンパイ。赤5mにくっつく変化も残せる。"
                   value={bestReason}
                   onChange={(e) => setBestReason(e.target.value)}
                   className="w-full text-xs p-2 rounded-lg border border-[#D5CEBE] bg-[#FBF9F4] text-[#262422] placeholder-[#A8A090] focus:outline-none focus:border-[#1E3A5F] focus:ring-1 focus:ring-[#1E3A5F] font-serif"
