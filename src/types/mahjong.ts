@@ -69,6 +69,19 @@ export interface MeldOption {
   discardAfterMeld?: string; // 鳴いた後の打牌（任意） e.g. "8s"
 }
 
+// シャンテン数・有効牌（受け入れ枚数）の計算結果
+export interface EffectiveTile {
+  tile: string;
+  remaining: number; // 見えていない残り枚数 (0〜4)
+}
+
+export interface UkeireResult {
+  shanten: number; // -1: アガリ, 0: 聴牌, 1: 一向聴, 2: 二向聴...
+  shantenLabel: string; // "聴牌 (テンパイ)", "一向聴 (イーシャンテン)"...
+  effectiveTiles: EffectiveTile[]; // 有効牌一覧
+  totalCount: number; // 受け入れ総枚数
+}
+
 export interface Problem {
   id: string;
   title: string;

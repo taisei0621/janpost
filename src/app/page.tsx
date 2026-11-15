@@ -5,6 +5,7 @@ import { Problem, ProblemLevel, VoteComment } from '../types/mahjong';
 import { INITIAL_PROBLEMS } from '../data/initialProblems';
 import { ProblemCard } from '../components/ProblemCard';
 import { PostProblemModal } from '../components/PostProblemModal';
+import { RandomPracticeModal } from '../components/RandomPracticeModal';
 import {
   getProblems,
   createProblem,
@@ -14,16 +15,19 @@ import {
   isDeviceAdmin,
   verifyAndSetAdmin,
   revokeAdmin,
+  getAllAnsweredProblemIds,
 } from '../utils/problemService';
 import { isSupabaseConfigured } from '../utils/supabaseClient';
 
 export default function Home() {
   const [problems, setProblems] = useState<Problem[]>(INITIAL_PROBLEMS);
-  const [selectedFilter, setSelectedFilter] = useState<'all' | ProblemLevel | 'meld' | 'user'>('all');
+  const [selectedFilter, setSelectedFilter] = useState<'all' | ProblemLevel | 'discard' | 'meld' | 'user' | 'unanswered'>('all');
   const [sortOrder, setSortOrder] = useState<'newest' | 'popular' | 'votes'>('newest');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isPracticeOpen, setIsPracticeOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [answeredIds, setAnsweredIds] = useState<Set<string>>(new Set());
 
   // Supabase (またはローカル) から問題一覧をロード
   const loadData = async () => {
@@ -57,8 +61,29 @@ export default function Home() {
       } else {
         setIsAdmin(isDeviceAdmin());
       }
+      setAnsweredIds(new Set(getAllAnsweredProblemIds()));
     }
   }, []);
+
+  // URL共有・ディープリンク対応 (?p=problemId)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const targetId = params.get('p');
+      if (targetId) {
+        setTimeout(() => {
+          const el = document.getElementById(`problem-${targetId}`);
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            el.classList.add('ring-4', 'ring-[#C82C26]', 'ring-offset-2');
+            setTimeout(() => {
+              el.classList.remove('ring-4', 'ring-[#C82C26]', 'ring-offset-2');
+            }, 3000);
+          }
+        }, 600);
+      }
+    }
+  }, [problems]);
 
   // 新規問題の追加
   const handleAddProblem = async (newProblem: Problem) => {
@@ -90,6 +115,7 @@ export default function Home() {
 
   // 投票集計（コメント対応）
   const handleVote = async (problemId: string, tileId: string, comment?: string) => {
+    setAnsweredIds((prev) => new Set([...prev, problemId]));
     setProblems((prev) =>
       prev.map((p) => {
         if (p.id === problemId) {
@@ -145,8 +171,10 @@ export default function Home() {
   const processedProblems = useMemo(() => {
     const filtered = problems.filter((p) => {
       if (selectedFilter === 'all') return true;
+      if (selectedFilter === 'discard') return p.problemType !== 'meld';
       if (selectedFilter === 'meld') return p.problemType === 'meld';
       if (selectedFilter === 'user') return p.author !== '公式' && !p.author.includes('公式');
+      if (selectedFilter === 'unanswered') return !answeredIds.has(p.id);
       return p.level === selectedFilter;
     });
 
@@ -165,7 +193,7 @@ export default function Home() {
       }
       return (b.createdAt || '').localeCompare(a.createdAt || '');
     });
-  }, [problems, selectedFilter, sortOrder]);
+  }, [problems, selectedFilter, sortOrder, answeredIds]);
 
   const totalVotesAcrossAll = useMemo(() => {
     return problems.reduce((total, p) => {
@@ -180,10 +208,12 @@ export default function Home() {
       beginner: problems.filter((p) => p.level === 'beginner').length,
       intermediate: problems.filter((p) => p.level === 'intermediate').length,
       advanced: problems.filter((p) => p.level === 'advanced').length,
+      discard: problems.filter((p) => p.problemType !== 'meld').length,
       meld: problems.filter((p) => p.problemType === 'meld').length,
       user: problems.filter((p) => p.author !== '公式' && !p.author.includes('公式')).length,
+      unanswered: problems.filter((p) => !answeredIds.has(p.id)).length,
     };
-  }, [problems]);
+  }, [problems, answeredIds]);
 
   return (
     <div className="min-h-screen bg-[#EAE4D7] text-[#262422]">
@@ -249,6 +279,18 @@ export default function Home() {
                 <span className="text-[11px] font-medium">管理者</span>
               </button>
             )}
+
+            {/* 特訓モード（何切るノック）ボタン */}
+            <button
+              type="button"
+              onClick={() => setIsPracticeOpen(true)}
+              className="inline-flex items-center gap-1.5 text-xs font-bold px-3 sm:px-3.5 py-2 rounded-xl cursor-pointer select-none bg-[#1E3A5F] hover:bg-[#162D4A] text-white shadow-xs border border-[#10233B] transition-transform active:translate-y-0.5"
+              title="ランダムに1問ずつ解く特訓モード"
+            >
+              <span className="text-sm">🎲</span>
+              <span className="hidden sm:inline">何切るノック</span>
+              <span className="sm:hidden">特訓</span>
+            </button>
 
             {/* 投函する（問題を作成）ボタン */}
             <button
@@ -401,6 +443,28 @@ export default function Home() {
 
             <button
               type="button"
+              onClick={() => setSelectedFilter('discard')}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
+                selectedFilter === 'discard'
+                  ? 'bg-[#1E3A5F] text-white shadow-sm'
+                  : 'text-[#5C5549] hover:text-[#262422]'
+              }`}
+            >
+              <span>🀄</span>
+              <span>何切る</span>
+              <span
+                className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full ${
+                  selectedFilter === 'discard'
+                    ? 'bg-white/20 text-white'
+                    : 'bg-[#EAE4D7] text-[#5C5549]'
+                }`}
+              >
+                {filterCounts.discard}
+              </span>
+            </button>
+
+            <button
+              type="button"
               onClick={() => setSelectedFilter('meld')}
               className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
                 selectedFilter === 'meld'
@@ -439,6 +503,28 @@ export default function Home() {
                 }`}
               >
                 {filterCounts.user}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setSelectedFilter('unanswered')}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
+                selectedFilter === 'unanswered'
+                  ? 'bg-[#C82C26] text-white shadow-sm'
+                  : 'text-[#5C5549] hover:text-[#262422]'
+              }`}
+            >
+              <span>📮</span>
+              <span>未回答</span>
+              <span
+                className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full ${
+                  selectedFilter === 'unanswered'
+                    ? 'bg-white/20 text-white'
+                    : 'bg-[#EAE4D7] text-[#5C5549]'
+                }`}
+              >
+                {filterCounts.unanswered}
               </span>
             </button>
           </div>
@@ -527,6 +613,7 @@ export default function Home() {
                 onLike={handleToggleLike}
                 onDelete={handleDeleteProblem}
                 canDelete={isAdmin ? true : undefined}
+                onAnswered={(id) => setAnsweredIds((prev) => new Set([...prev, id]))}
               />
             ))
           )}
@@ -581,6 +668,15 @@ export default function Home() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onAddProblem={handleAddProblem}
+      />
+
+      {/* 特訓（何切るノック）モーダル */}
+      <RandomPracticeModal
+        problems={problems}
+        isOpen={isPracticeOpen}
+        onClose={() => setIsPracticeOpen(false)}
+        onVote={handleVote}
+        onLike={handleToggleLike}
       />
     </div>
   );

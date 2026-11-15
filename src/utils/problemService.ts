@@ -717,16 +717,68 @@ function saveLocalVote(problemId: string, tileId: string, comment?: string): voi
   if (typeof window === 'undefined') return;
   try {
     const saved = localStorage.getItem(LOCAL_STORAGE_VOTES_KEY);
-    const votes: any[] = saved ? JSON.parse(saved) : [];
-    votes.push({
-      id: `local-${Date.now()}`,
+    const votes: Array<{
+      id: string;
+      problem_id: string;
+      tile_id: string;
+      comment?: string | null;
+      created_at: string;
+    }> = saved ? JSON.parse(saved) : [];
+
+    const existingIdx = votes.findIndex((v) => v.problem_id === problemId);
+    const newRecord = {
+      id: existingIdx !== -1 ? votes[existingIdx].id : `local-${Date.now()}`,
       problem_id: problemId,
       tile_id: tileId,
       comment: comment || null,
       created_at: new Date().toISOString(),
-    });
+    };
+
+    if (existingIdx !== -1) {
+      votes[existingIdx] = newRecord;
+    } else {
+      votes.push(newRecord);
+    }
     localStorage.setItem(LOCAL_STORAGE_VOTES_KEY, JSON.stringify(votes));
   } catch (e) {
     console.error('LocalStorage vote write error:', e);
+  }
+}
+
+/**
+ * この端末で以前に回答した情報を取得
+ */
+export function getUserAnswerForProblem(problemId: string): { tileId: string; comment?: string } | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const saved = localStorage.getItem(LOCAL_STORAGE_VOTES_KEY);
+    if (!saved) return null;
+    const votes: Array<{ problem_id: string; tile_id: string; comment?: string | null }> = JSON.parse(saved);
+    const found = votes.find((v) => v.problem_id === problemId);
+    if (found) {
+      return {
+        tileId: found.tile_id,
+        comment: found.comment || undefined,
+      };
+    }
+  } catch (e) {
+    console.error('Failed to read user answer:', e);
+  }
+  return null;
+}
+
+/**
+ * この端末ですでに回答済みの問題ID一覧を取得
+ */
+export function getAllAnsweredProblemIds(): string[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const saved = localStorage.getItem(LOCAL_STORAGE_VOTES_KEY);
+    if (!saved) return [];
+    const votes: Array<{ problem_id: string }> = JSON.parse(saved);
+    return votes.map((v) => v.problem_id);
+  } catch (e) {
+    console.error('Failed to read answered IDs:', e);
+    return [];
   }
 }

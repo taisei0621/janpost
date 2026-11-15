@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Problem, VoteComment, PlayerSituation, MeldOption } from '../types/mahjong';
+import { Problem, VoteComment, PlayerSituation, MeldOption, UkeireResult, EffectiveTile } from '../types/mahjong';
 import { MahjongTile } from './MahjongTile';
 import { MahjongTableView } from './MahjongTableView';
 import {
@@ -10,11 +10,13 @@ import {
   getDoraTiles,
   parseMeldDisplay,
   calculateAvailableMeldOptions,
+  calculateUkeire,
 } from '../utils/mahjongUtils';
 import {
   isProblemLikedByMe,
   setProblemLikedByMe,
   canDeleteProblem,
+  getUserAnswerForProblem,
 } from '../utils/problemService';
 
 interface ProblemCardProps {
@@ -23,6 +25,7 @@ interface ProblemCardProps {
   onLike?: (problemId: string, increment: boolean) => void;
   onDelete?: (problemId: string) => void;
   canDelete?: boolean;
+  onAnswered?: (problemId: string) => void;
 }
 
 const WINDS: Array<'東家' | '南家' | '西家' | '北家'> = ['東家', '南家', '西家', '北家'];
@@ -40,6 +43,7 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({
   onLike,
   onDelete,
   canDelete: propCanDelete,
+  onAnswered,
 }) => {
   const isMeldProblem = problem.problemType === 'meld';
   const meldTarget = problem.meldTarget;
@@ -58,6 +62,28 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({
   const [comments, setComments] = useState<VoteComment[]>(problem.comments || []);
   const [filterCommentTile, setFilterCommentTile] = useState<string>('all');
   const [additionalComment, setAdditionalComment] = useState('');
+  const [copiedUrl, setCopiedUrl] = useState(false);
+
+  // 回答履歴のローカル復元
+  useEffect(() => {
+    const saved = getUserAnswerForProblem(problem.id);
+    if (saved) {
+      setHasAnswered(true);
+      if (saved.comment) {
+        setUserReason(saved.comment);
+      }
+      if (isMeldProblem) {
+        setSelectedMeldOptionId(saved.tileId);
+      } else {
+        const foundIdx = sortedHand.findIndex((t) => t === saved.tileId);
+        if (foundIdx !== -1) {
+          setSelectedTileIndex(foundIdx);
+        } else {
+          setPhotoSelectedTile(saved.tileId);
+        }
+      }
+    }
+  }, [problem.id, isMeldProblem, sortedHand]);
 
   // プレイヤー情報の安全パース
   const playersObj = useMemo(() => {
@@ -157,6 +183,30 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({
 
   const doraTiles = getDoraTiles(problem.context);
 
+  // 卓上で見えている牌（ドラ表示牌・河の捨て牌・他家の鳴き牌）
+  const visibleTilesOnBoard = useMemo(() => {
+    const list: string[] = [...doraTiles];
+    if (playersObj) {
+      for (const p of Object.values(playersObj) as PlayerSituation[]) {
+        if (!p) continue;
+        if (Array.isArray(p.discards)) {
+          for (const d of p.discards) {
+            list.push(d.tileId);
+          }
+        }
+        if (Array.isArray(p.melds)) {
+          for (const m of p.melds) {
+            const parsed = parseMeldDisplay(m);
+            for (const t of parsed.tiles) {
+              list.push(t.tileId);
+            }
+          }
+        }
+      }
+    }
+    return list;
+  }, [doraTiles, playersObj]);
+
   const selectedTile = isPhotoMode
     ? photoSelectedTile
     : selectedTileIndex !== null
@@ -165,6 +215,54 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({
 
   // 選択された回答キー（何切るなら牌ID、鳴くか問題ならoption.id）
   const selectedChoice = isMeldProblem ? selectedMeldOptionId : selectedTile;
+
+  // 有効牌・シャンテン数計算 (何切る問題かつ手牌ありの場合)
+  const ukeireInfo = useMemo(() => {
+    if (!hasAnswered || isMeldProblem || !problem.hand || problem.hand.length < 13 || !selectedChoice) {
+      return null;
+    }
+    const userResult = calculateUkeire(problem.hand, selectedChoice, myMelds.length, visibleTilesOnBoard);
+    let bestResult: UkeireResult | null = null;
+    const bestTileId = problem.discards.find((d) => d.rank === 'best')?.tileId;
+    if (bestTileId && bestTileId !== selectedChoice) {
+      bestResult = calculateUkeire(problem.hand, bestTileId, myMelds.length, visibleTilesOnBoard);
+    }
+    return {
+      user: userResult,
+      best: bestResult,
+    };
+  }, [hasAnswered, isMeldProblem, problem.hand, problem.discards, selectedChoice, myMelds.length, visibleTilesOnBoard]);
+
+  // 問題URLのコピー
+  const handleCopyUrl = async () => {
+    if (typeof window === 'undefined') return;
+    const url = `${window.location.origin}${window.location.pathname}?p=${problem.id}`;
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(url);
+      } else {
+        const input = document.createElement('input');
+        input.value = url;
+        document.body.appendChild(input);
+        input.select();
+        document.execCommand('copy');
+        document.body.removeChild(input);
+      }
+      setCopiedUrl(true);
+      setTimeout(() => setCopiedUrl(false), 2000);
+    } catch (e) {
+      console.error('Copy failed:', e);
+    }
+  };
+
+  // X (旧Twitter) シェア
+  const handleShareX = () => {
+    if (typeof window === 'undefined') return;
+    const url = `${window.location.origin}${window.location.pathname}?p=${problem.id}`;
+    const text = `【雀ポスト】${problem.title}、あなたなら何切る？ #雀ポスト #麻雀 #何切る`;
+    const tweetUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
+    window.open(tweetUrl, '_blank', 'noopener,noreferrer');
+  };
 
   // 選択肢キーの表示ラベル変換ヘルパー
   const getChoiceLabel = (key: string) => {
@@ -231,6 +329,9 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({
     if (onVote) {
       onVote(problem.id, selectedChoice, finalComment || undefined);
     }
+    if (onAnswered) {
+      onAnswered(problem.id);
+    }
   };
 
   const handleAddPostComment = (e: React.FormEvent) => {
@@ -272,7 +373,10 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({
   const hasDetailedBoard = true;
 
   return (
-    <div className="w-full max-w-3xl postcard-paper rounded-2xl overflow-hidden transition-all duration-200 mb-8 border border-[#D5CEBE]">
+    <div
+      id={`problem-${problem.id}`}
+      className="w-full max-w-3xl postcard-paper rounded-2xl overflow-hidden transition-all duration-200 mb-8 border border-[#D5CEBE]"
+    >
       {/* ハガキ上部：エアメールの細い飾り枠 */}
       <div className="w-full h-1 airmail-stripe border-b border-[#D5CEBE]" />
 
@@ -329,8 +433,43 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({
             </span>
           </div>
 
-          {/* 右側：消印スタンプ風メタ情報 & いいねスタンプ */}
-          <div className="flex items-center gap-2">
+          {/* 右側：消印スタンプ風メタ情報 & 共有 & いいねスタンプ */}
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap justify-end">
+            {/* 回答済み消印スタンプ */}
+            {hasAnswered && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border-2 border-double border-[#1E3A5F] text-[#1E3A5F] bg-[#E8EFF7] text-[10px] font-bold font-serif shadow-2xs">
+                <span>📮</span>
+                <span>回答済</span>
+              </span>
+            )}
+
+            {/* URLコピーボタン */}
+            <button
+              type="button"
+              onClick={handleCopyUrl}
+              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold transition-all border cursor-pointer select-none shadow-2xs ${
+                copiedUrl
+                  ? 'bg-[#EAF2EC] border-[#124D27] text-[#124D27]'
+                  : 'bg-[#FBF9F4] border-[#D5CEBE] text-[#5C5549] hover:border-[#1E3A5F] hover:text-[#1E3A5F]'
+              }`}
+              title="この問題のURLをコピー"
+            >
+              <span>{copiedUrl ? '✓' : '🔗'}</span>
+              <span className="text-[11px] font-serif">{copiedUrl ? 'コピー完了' : '共有'}</span>
+            </button>
+
+            {/* X (旧Twitter) ポストボタン */}
+            <button
+              type="button"
+              onClick={handleShareX}
+              className="p-1.5 rounded-full text-xs bg-[#FBF9F4] border border-[#D5CEBE] text-[#262422] hover:bg-[#262422] hover:text-white transition-all cursor-pointer shadow-2xs"
+              title="X (Twitter) でシェア"
+            >
+              <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+              </svg>
+            </button>
+
             {/* 消印スタンプ（日付 & 局） */}
             <div className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border border-[#1E3A5F]/40 text-[#1E3A5F] text-[10px] font-mono bg-[#E8EFF7]/60">
               <span>〒 JANPOST</span>
@@ -887,6 +1026,110 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({
                 </div>
               )}
             </div>
+
+            {/* シャンテン数・受け入れ枚数 (有効牌) 精密分析カード */}
+            {ukeireInfo && (
+              <div className="bg-[#F8F5EC] p-4 sm:p-5 rounded-2xl border border-[#D5CEBE] space-y-3.5 shadow-xs">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <h4 className="font-bold text-sm text-[#262422] flex items-center gap-2 font-serif">
+                    <span>🧮 有効牌・受け入れ枚数分析</span>
+                    <span className="text-[10px] bg-[#1E3A5F] text-white px-2 py-0.5 rounded-full font-serif font-bold">
+                      {ukeireInfo.user.shantenLabel}
+                    </span>
+                  </h4>
+                  <span className="text-[10px] text-[#7A7265] font-mono">
+                    ※見えている牌（手牌・ドラ・河・鳴き）から残数を精密計算
+                  </span>
+                </div>
+
+                {/* あなたが選んだ打牌の受け入れ */}
+                <div className="p-3.5 bg-[#FBF9F4] rounded-xl border border-[#D5CEBE] space-y-2">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-xs font-bold text-[#262422] font-serif">あなたの打牌:</span>
+                      {selectedChoice && <MahjongTile tileId={selectedChoice} size="xs" disabled />}
+                      <span className="text-xs font-bold text-[#1E3A5F] font-serif">
+                        【打{selectedChoice ? getChoiceLabel(selectedChoice) : ''}】
+                      </span>
+                      <span className="text-xs font-bold text-[#262422]">
+                        ➔ {ukeireInfo.user.shantenLabel}
+                      </span>
+                    </div>
+                    <div className="text-xs font-bold font-mono">
+                      有効牌 <strong className="text-base text-[#C82C26]">{ukeireInfo.user.totalCount}</strong> 枚
+                      <span className="text-[11px] font-normal text-[#5C5549] ml-1">
+                        ({ukeireInfo.user.effectiveTiles.length}種)
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* 有効牌の牌姿一覧 */}
+                  {ukeireInfo.user.effectiveTiles.length > 0 ? (
+                    <div className="flex flex-wrap gap-1.5 items-center pt-1">
+                      {ukeireInfo.user.effectiveTiles.map((eff) => (
+                        <div
+                          key={`eff-u-${eff.tile}`}
+                          className="flex items-center gap-1 bg-white px-1.5 py-0.5 rounded border border-[#D5CEBE] shadow-2xs"
+                        >
+                          <MahjongTile tileId={eff.tile} size="xs" disabled />
+                          <span className="text-[10px] font-mono font-bold text-[#262422]">
+                            残{eff.remaining}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-[11px] text-[#7A7265] font-serif">
+                      ※有効牌はありません
+                    </p>
+                  )}
+                </div>
+
+                {/* 推奨正解の受け入れ（自分の選択と異なる場合のみ比較表示） */}
+                {ukeireInfo.best && bestDiscard && bestDiscard.tileId !== selectedChoice && (
+                  <div className="p-3.5 bg-[#EAF2EC] rounded-xl border border-[#124D27]/30 space-y-2">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-xs font-bold text-[#124D27] font-serif">推奨正解:</span>
+                        <MahjongTile tileId={bestDiscard.tileId} size="xs" disabled />
+                        <span className="text-xs font-bold text-[#124D27] font-serif">
+                          【打{getChoiceLabel(bestDiscard.tileId)}】
+                        </span>
+                        <span className="text-xs font-bold text-[#124D27]">
+                          ➔ {ukeireInfo.best.shantenLabel}
+                        </span>
+                      </div>
+                      <div className="text-xs font-bold font-mono text-[#124D27]">
+                        有効牌 <strong className="text-base">{ukeireInfo.best.totalCount}</strong> 枚
+                        <span className="text-[11px] font-normal ml-1">
+                          ({ukeireInfo.best.effectiveTiles.length}種)
+                        </span>
+                        {ukeireInfo.best.totalCount > ukeireInfo.user.totalCount && (
+                          <span className="ml-1 text-[11px] bg-[#124D27] text-white px-1.5 py-0.2 rounded-full font-bold">
+                            +{ukeireInfo.best.totalCount - ukeireInfo.user.totalCount}枚有利
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* 推奨正解の有効牌一覧 */}
+                    <div className="flex flex-wrap gap-1.5 items-center pt-1">
+                      {ukeireInfo.best.effectiveTiles.map((eff: EffectiveTile) => (
+                        <div
+                          key={`eff-b-${eff.tile}`}
+                          className="flex items-center gap-1 bg-white px-1.5 py-0.5 rounded border border-[#124D27]/30 shadow-2xs"
+                        >
+                          <MahjongTile tileId={eff.tile} size="xs" disabled />
+                          <span className="text-[10px] font-mono font-bold text-[#124D27]">
+                            残{eff.remaining}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* みんなの打牌・鳴き判断分布 */}
             <div className="bg-[#F8F5EC] p-5 rounded-2xl border border-[#D5CEBE] space-y-3.5 shadow-xs">

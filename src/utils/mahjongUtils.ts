@@ -1,4 +1,5 @@
-import { Tile, Suit, MeldInfo, MeldFrom, MeldType, MeldOption } from '../types/mahjong';
+import { Tile, Suit, MeldInfo, MeldFrom, MeldType, MeldOption, UkeireResult, EffectiveTile } from '../types/mahjong';
+export type { UkeireResult, EffectiveTile };
 
 const ZI_NAMES: Record<number, string> = {
   1: '東',
@@ -553,4 +554,233 @@ export function calculateAvailableMeldOptions(
   });
 
   return options;
+}
+
+// -------------------------------------------------------------
+// シャンテン数・有効牌（受け入れ枚数）計算エンジン
+// -------------------------------------------------------------
+
+export const SHANTEN_TILE_INDEX: Record<string, number> = {};
+const SHANTEN_INDEX_TILE: string[] = [];
+
+(() => {
+  let idx = 0;
+  for (const s of ['m', 'p', 's'] as const) {
+    for (let n = 1; n <= 9; n++) {
+      const id = `${n}${s}`;
+      SHANTEN_TILE_INDEX[id] = idx++;
+      SHANTEN_INDEX_TILE.push(id);
+    }
+  }
+  for (let n = 1; n <= 7; n++) {
+    const id = `${n}z`;
+    SHANTEN_TILE_INDEX[id] = idx++;
+    SHANTEN_INDEX_TILE.push(id);
+  }
+})();
+
+export function normalizeTileId(tileId: string): string {
+  if (tileId === '0m') return '5m';
+  if (tileId === '0p') return '5p';
+  if (tileId === '0s') return '5s';
+  return tileId;
+}
+
+/**
+ * 手牌のシャンテン数を算出
+ * (-1: アガリ, 0: 聴牌, 1: 一向聴, 2: 二向聴...)
+ */
+export function calculateShanten(tiles: string[], numMelds: number = 0): number {
+  const counts = new Array<number>(34).fill(0);
+  for (const t of tiles) {
+    const norm = normalizeTileId(t);
+    const i = SHANTEN_TILE_INDEX[norm];
+    if (i !== undefined) counts[i]++;
+  }
+
+  const maxSets = 4 - numMelds;
+  let minShanten = 8 - 2 * numMelds;
+
+  // 1. 一般手 (面子手: 順子/刻子 + 雀頭)
+  function search(tileIdx: number, sets: number, taatsu: number, hasHead: boolean): void {
+    const effectiveTaatsu = Math.min(taatsu, maxSets - sets);
+    const currentShanten = 2 * (maxSets - sets) - effectiveTaatsu - (hasHead ? 1 : 0);
+    if (currentShanten < minShanten) {
+      minShanten = currentShanten;
+    }
+
+    if (tileIdx >= 34) return;
+
+    if (counts[tileIdx] === 0) {
+      search(tileIdx + 1, sets, taatsu, hasHead);
+      return;
+    }
+
+    // 刻子
+    if (counts[tileIdx] >= 3) {
+      counts[tileIdx] -= 3;
+      search(tileIdx, sets + 1, taatsu, hasHead);
+      counts[tileIdx] += 3;
+    }
+
+    // 順子 (萬子・筒子・索子のみ)
+    if (tileIdx < 27 && tileIdx % 9 <= 6) {
+      if (counts[tileIdx] >= 1 && counts[tileIdx + 1] >= 1 && counts[tileIdx + 2] >= 1) {
+        counts[tileIdx]--;
+        counts[tileIdx + 1]--;
+        counts[tileIdx + 2]--;
+        search(tileIdx, sets + 1, taatsu, hasHead);
+        counts[tileIdx]++;
+        counts[tileIdx + 1]++;
+        counts[tileIdx + 2]++;
+      }
+    }
+
+    // 雀頭
+    if (counts[tileIdx] >= 2 && !hasHead) {
+      counts[tileIdx] -= 2;
+      search(tileIdx, sets, taatsu, true);
+      counts[tileIdx] += 2;
+    }
+
+    // 対子を塔子として利用
+    if (counts[tileIdx] >= 2 && sets + taatsu < maxSets) {
+      counts[tileIdx] -= 2;
+      search(tileIdx, sets, taatsu + 1, hasHead);
+      counts[tileIdx] += 2;
+    }
+
+    // 両面・辺張塔子
+    if (tileIdx < 27 && tileIdx % 9 <= 7 && sets + taatsu < maxSets) {
+      if (counts[tileIdx] >= 1 && counts[tileIdx + 1] >= 1) {
+        counts[tileIdx]--;
+        counts[tileIdx + 1]--;
+        search(tileIdx, sets, taatsu + 1, hasHead);
+        counts[tileIdx]++;
+        counts[tileIdx + 1]++;
+      }
+    }
+
+    // 嵌張塔子
+    if (tileIdx < 27 && tileIdx % 9 <= 6 && sets + taatsu < maxSets) {
+      if (counts[tileIdx] >= 1 && counts[tileIdx + 2] >= 1) {
+        counts[tileIdx]--;
+        counts[tileIdx + 2]--;
+        search(tileIdx, sets, taatsu + 1, hasHead);
+        counts[tileIdx]++;
+        counts[tileIdx + 2]++;
+      }
+    }
+
+    // この牌を単騎・孤立牌としてスキップ
+    search(tileIdx + 1, sets, taatsu, hasHead);
+  }
+
+  search(0, 0, 0, false);
+
+  // 2. 七対子 (門前かつ純手牌13-14枚の場合のみ)
+  if (numMelds === 0 && (tiles.length === 13 || tiles.length === 14)) {
+    let pairs = 0;
+    let kinds = 0;
+    for (let i = 0; i < 34; i++) {
+      if (counts[i] >= 2) pairs++;
+      if (counts[i] >= 1) kinds++;
+    }
+    const chiitoiShanten = 6 - pairs + Math.max(0, 7 - kinds);
+    if (chiitoiShanten < minShanten) {
+      minShanten = chiitoiShanten;
+    }
+  }
+
+  // 3. 国士無双 (門前かつ純手牌13-14枚の場合のみ)
+  if (numMelds === 0 && (tiles.length === 13 || tiles.length === 14)) {
+    const kokushiIndices = [0, 8, 9, 17, 18, 26, 27, 28, 29, 30, 31, 32, 33];
+    let uniqueYao = 0;
+    let hasPair = 0;
+    for (const i of kokushiIndices) {
+      if (counts[i] >= 1) uniqueYao++;
+      if (counts[i] >= 2) hasPair = 1;
+    }
+    const kokushiShanten = 13 - uniqueYao - hasPair;
+    if (kokushiShanten < minShanten) {
+      minShanten = kokushiShanten;
+    }
+  }
+
+  return minShanten;
+}
+
+/**
+ * シャンテン数からラベルテキストを返却
+ */
+export function getShantenLabel(shanten: number): string {
+  if (shanten === -1) return '和了 (アガリ)';
+  if (shanten === 0) return '聴牌 (テンパイ)';
+  if (shanten === 1) return '一向聴 (イーシャンテン)';
+  if (shanten === 2) return '二向聴 (リャンシャンテン)';
+  if (shanten === 3) return '三向聴 (サンシャンテン)';
+  return `${shanten}向聴`;
+}
+
+/**
+ * 特定の打牌後のシャンテン数と有効牌（受け入れ枚数）を精密計算
+ * @param hand 現在の手牌（通常14枚、または副露時は3*(4-M)+2枚）
+ * @param discardTile 切る牌
+ * @param numMelds 成立している副露数 (0〜4)
+ * @param visibleTiles 卓上で見えている牌（ドラ表示牌、河の捨て牌、他家の鳴き牌など）
+ */
+export function calculateUkeire(
+  hand: string[],
+  discardTile: string,
+  numMelds: number = 0,
+  visibleTiles: string[] = []
+): UkeireResult {
+  const normDiscard = normalizeTileId(discardTile);
+  const handAfterDiscard = [...hand];
+  const discardIdx = handAfterDiscard.findIndex((t) => normalizeTileId(t) === normDiscard);
+  if (discardIdx !== -1) {
+    handAfterDiscard.splice(discardIdx, 1);
+  }
+
+  const currentShanten = calculateShanten(handAfterDiscard, numMelds);
+
+  // 見えている牌の集計 (自分の手牌 + 卓上の牌)
+  const visibleCounts = new Array<number>(34).fill(0);
+  for (const t of hand) {
+    const i = SHANTEN_TILE_INDEX[normalizeTileId(t)];
+    if (i !== undefined) visibleCounts[i]++;
+  }
+  for (const t of visibleTiles) {
+    const i = SHANTEN_TILE_INDEX[normalizeTileId(t)];
+    if (i !== undefined) visibleCounts[i]++;
+  }
+
+  const effectiveTiles: EffectiveTile[] = [];
+  let totalCount = 0;
+
+  // 34種の牌をツモったときにシャンテン数が進むか（減るか）チェック
+  for (let i = 0; i < 34; i++) {
+    const tileName = SHANTEN_INDEX_TILE[i];
+    const testHand = [...handAfterDiscard, tileName];
+    const newShanten = calculateShanten(testHand, numMelds);
+
+    if (newShanten < currentShanten) {
+      const remaining = Math.max(0, 4 - visibleCounts[i]);
+      effectiveTiles.push({ tile: tileName, remaining });
+      totalCount += remaining;
+    }
+  }
+
+  // 有効牌を残枚数の多い順にソート（同数なら牌番号順）
+  effectiveTiles.sort((a, b) => {
+    if (b.remaining !== a.remaining) return b.remaining - a.remaining;
+    return (SHANTEN_TILE_INDEX[a.tile] || 0) - (SHANTEN_TILE_INDEX[b.tile] || 0);
+  });
+
+  return {
+    shanten: currentShanten,
+    shantenLabel: getShantenLabel(currentShanten),
+    effectiveTiles,
+    totalCount,
+  };
 }
