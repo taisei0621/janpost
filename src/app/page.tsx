@@ -173,6 +173,18 @@ export default function Home() {
     }, 0);
   }, [problems]);
 
+  // 各フィルター別の問題数
+  const filterCounts = useMemo(() => {
+    return {
+      all: problems.length,
+      beginner: problems.filter((p) => p.level === 'beginner').length,
+      intermediate: problems.filter((p) => p.level === 'intermediate').length,
+      advanced: problems.filter((p) => p.level === 'advanced').length,
+      meld: problems.filter((p) => p.problemType === 'meld').length,
+      user: problems.filter((p) => p.author !== '公式' && !p.author.includes('公式')).length,
+    };
+  }, [problems]);
+
   return (
     <div className="min-h-screen bg-[#EAE4D7] text-[#262422]">
       {/* 最上部：エアメール風のアクセントライン */}
@@ -310,8 +322,14 @@ export default function Home() {
               }`}
             >
               <span>すべて</span>
-              <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-[#EAE4D7] text-[#5C5549]">
-                {problems.length}
+              <span
+                className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full ${
+                  selectedFilter === 'all'
+                    ? 'bg-[#EAE4D7] text-[#262422]'
+                    : 'bg-[#EAE4D7] text-[#5C5549]'
+                }`}
+              >
+                {filterCounts.all}
               </span>
             </button>
 
@@ -326,6 +344,15 @@ export default function Home() {
             >
               <span className="w-2 h-2 rounded-full bg-emerald-400" />
               <span>初級</span>
+              <span
+                className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full ${
+                  selectedFilter === 'beginner'
+                    ? 'bg-white/20 text-white'
+                    : 'bg-[#EAE4D7] text-[#5C5549]'
+                }`}
+              >
+                {filterCounts.beginner}
+              </span>
             </button>
 
             <button
@@ -339,6 +366,15 @@ export default function Home() {
             >
               <span className="w-2 h-2 rounded-full bg-sky-300" />
               <span>中級</span>
+              <span
+                className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full ${
+                  selectedFilter === 'intermediate'
+                    ? 'bg-white/20 text-white'
+                    : 'bg-[#EAE4D7] text-[#5C5549]'
+                }`}
+              >
+                {filterCounts.intermediate}
+              </span>
             </button>
 
             <button
@@ -352,6 +388,15 @@ export default function Home() {
             >
               <span className="w-2 h-2 rounded-full bg-purple-300" />
               <span>上級</span>
+              <span
+                className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full ${
+                  selectedFilter === 'advanced'
+                    ? 'bg-white/20 text-white'
+                    : 'bg-[#EAE4D7] text-[#5C5549]'
+                }`}
+              >
+                {filterCounts.advanced}
+              </span>
             </button>
 
             <button
@@ -365,10 +410,14 @@ export default function Home() {
             >
               <span>⚡</span>
               <span>鳴くか問題</span>
-              <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full ${
-                selectedFilter === 'meld' ? 'bg-white/20 text-white' : 'bg-[#EAE4D7] text-[#5C5549]'
-              }`}>
-                {problems.filter((p) => p.problemType === 'meld').length}
+              <span
+                className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full ${
+                  selectedFilter === 'meld'
+                    ? 'bg-white/20 text-white'
+                    : 'bg-[#EAE4D7] text-[#5C5549]'
+                }`}
+              >
+                {filterCounts.meld}
               </span>
             </button>
 
@@ -382,6 +431,15 @@ export default function Home() {
               }`}
             >
               <span>ユーザー投稿</span>
+              <span
+                className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full ${
+                  selectedFilter === 'user'
+                    ? 'bg-white/20 text-white'
+                    : 'bg-[#EAE4D7] text-[#5C5549]'
+                }`}
+              >
+                {filterCounts.user}
+              </span>
             </button>
           </div>
         </div>

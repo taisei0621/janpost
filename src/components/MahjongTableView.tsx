@@ -175,10 +175,8 @@ export const MahjongTableView: React.FC<MahjongTableViewProps> = ({ problem }) =
                 {Array.from({ length: Math.max(0, 6 - rowTiles.length) }).map((_, slotIdx) => (
                   <div
                     key={`slot-${seat.wind}-${rIdx}-${slotIdx}`}
-                    className="w-[16px] h-[22px] sm:w-[24px] sm:h-[33px] border border-dashed border-emerald-500/25 rounded-[2px] flex items-center justify-center text-[7px] sm:text-[9px] text-emerald-300/40 select-none font-mono"
-                  >
-                    {rowTiles.length + slotIdx + 1}
-                  </div>
+                    className="w-[16px] h-[22px] sm:w-[24px] sm:h-[33px] border border-dashed border-emerald-500/20 rounded-[2px]"
+                  />
                 ))}
               </div>
             ))}
