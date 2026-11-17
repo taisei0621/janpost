@@ -41,6 +41,75 @@ const ZI_TILES = ['1z', '2z', '3z', '4z', '5z', '6z', '7z'];
 const ALL_TILES = [...MAN_TILES, ...PIN_TILES, ...SOU_TILES, ...ZI_TILES];
 const WINDS: Array<'東家' | '南家' | '西家' | '北家'> = ['東家', '南家', '西家', '北家'];
 
+// クイック手牌テンプレート（何切る用 14枚）
+const HAND_TEMPLATES: { name: string; tiles: string[]; bestDiscard: string; desc: string }[] = [
+  {
+    name: '完全イーシャンテン',
+    desc: '2面子＋1雀頭＋1両面＋浮き牌の基本形',
+    tiles: ['3m', '4m', '5m', '6m', '7m', '2p', '3p', '4p', '5p', '5p', '6s', '7s', '8s', '8p'],
+    bestDiscard: '8p',
+  },
+  {
+    name: '好形6ブロック選択',
+    desc: 'すべて両面の贅沢な6ブロックからの選択',
+    tiles: ['2m', '3m', '7m', '8m', '3p', '4p', '5p', '6p', '7p', '4s', '5s', '5s', '6s', '6s'],
+    bestDiscard: '4s',
+  },
+  {
+    name: 'ピンフ・赤ドラ手',
+    desc: '門前リーチを目指す赤ドラ入り好形',
+    tiles: ['2m', '3m', '4m', '6m', '7m', '3p', '4p', '5p', '0s', '6s', '7s', '8s', '9s', '1p'],
+    bestDiscard: '1p',
+  },
+  {
+    name: 'タンヤオ多面張形',
+    desc: '変化と連続形が豊富なタンヤオ手',
+    tiles: ['2m', '3m', '4m', '4m', '5m', '6m', '7m', '3p', '4p', '5p', '6s', '7s', '8s', '2p'],
+    bestDiscard: '2p',
+  },
+  {
+    name: '親リーチへのベタオリ',
+    desc: '現物ゼロからノーチャンス端牌を切る局面',
+    tiles: ['2m', '5m', '9m', '1p', '4p', '9p', '3s', '6s', '7s', '2z', '2z', '3z', '4z', '9s'],
+    bestDiscard: '9p',
+  },
+];
+
+// クイック手牌テンプレート（鳴くか問題用 13枚）
+const MELD_TEMPLATES: {
+  name: string;
+  desc: string;
+  tiles: string[];
+  targetTile: string;
+  targetFrom: '東家' | '南家' | '西家' | '北家';
+  dora: string;
+}[] = [
+  {
+    name: '愚形チー満貫手 (カン2m)',
+    desc: '中対子＋赤対子で34mチーして打1m',
+    tiles: ['1m', '3m', '4m', '6p', '7p', '8p', '2s', '3s', '4s', '5s', '0s', '7z', '7z'],
+    targetTile: '2m',
+    targetFrom: '東家',
+    dora: '5s',
+  },
+  {
+    name: 'タンヤオ好形鳴き (打5pチー)',
+    desc: '鳴いて即両面テンパイを取る一手',
+    tiles: ['2m', '3m', '4m', '6m', '7m', '4p', '6p', '3s', '4s', '5s', '7s', '7s', '8s'],
+    targetTile: '5p',
+    targetFrom: '東家',
+    dora: '8m',
+  },
+  {
+    name: '役牌バック仕掛け (白ポン)',
+    desc: '白をポンしてアガリに向かう',
+    tiles: ['3m', '4m', '5m', '6p', '7p', '8p', '2s', '3s', '4s', '6s', '7s', '5z', '5z'],
+    targetTile: '5z',
+    targetFrom: '対面' as any,
+    dora: '3p',
+  },
+];
+
 export const PostProblemModal: React.FC<PostProblemModalProps> = ({
   isOpen,
   onClose,
@@ -241,7 +310,39 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
     }
 
     const newHand = [...hand, tileId];
-    setHand(autoSort ? sortTiles(newHand) : newHand);
+    const sorted = autoSort ? sortTiles(newHand) : newHand;
+    setHand(sorted);
+
+    // 手牌が揃った際、正解が未選択なら追加した牌を正解に自動セット
+    if (newHand.length === targetHandCount && !bestDiscard) {
+      setBestDiscard(tileId);
+    }
+  };
+
+  // クイック手牌テンプレートの適用
+  const handleApplyTemplate = (tmpl: typeof HAND_TEMPLATES[0]) => {
+    setHand([...tmpl.tiles]);
+    setBestDiscard(tmpl.bestDiscard);
+    if (!title) {
+      setTitle(`【${level === 'beginner' ? '初級' : level === 'intermediate' ? '中級' : '上級'}】${tmpl.name}の選択`);
+    }
+  };
+
+  // ランダム手牌の自動適用
+  const handleApplyRandomTemplate = () => {
+    if (problemType === 'discard') {
+      const randomTmpl = HAND_TEMPLATES[Math.floor(Math.random() * HAND_TEMPLATES.length)];
+      handleApplyTemplate(randomTmpl);
+    } else {
+      const randomMeld = MELD_TEMPLATES[Math.floor(Math.random() * MELD_TEMPLATES.length)];
+      setHand([...randomMeld.tiles]);
+      setMeldTargetTile(randomMeld.targetTile);
+      setMeldTargetFrom(randomMeld.targetFrom);
+      setDoraList([randomMeld.dora]);
+      if (!title) {
+        setTitle(`【${level === 'beginner' ? '初級' : level === 'intermediate' ? '中級' : '上級'}】${randomMeld.name}`);
+      }
+    }
   };
 
   const handleRemoveTile = (indexToRemove: number) => {
@@ -489,7 +590,7 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
         <div className="absolute top-0 left-0 right-0 h-1.5 airmail-stripe rounded-t-2xl" />
 
         {/* モーダルヘッダー */}
-        <div className="flex items-center justify-between border-b border-[#D5CEBE] pb-3.5 mb-4 pt-1">
+        <div className="flex items-center justify-between border-b border-[#D5CEBE] pb-3 mb-3 pt-1">
           <div className="flex items-center gap-2">
             <span className="w-7 h-7 rounded-lg bg-[#C82C26] text-white flex items-center justify-center font-bold text-sm font-serif shadow-xs">
               〒
@@ -512,8 +613,28 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
           </button>
         </div>
 
+        {/* ⚡ 最短ステップ案内バナー */}
+        <div className="bg-[#EBF3ED] border border-[#124D27]/30 rounded-xl p-2.5 mb-3 flex items-center justify-between text-xs">
+          <div className="flex items-center gap-2.5">
+            <span className="w-6 h-6 rounded-full bg-[#124D27] text-white flex items-center justify-center text-xs font-bold shrink-0">
+              ⚡
+            </span>
+            <div>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="font-bold text-[#124D27] font-serif">最短10秒で投函完了！</span>
+                <span className="text-[10px] bg-[#124D27]/10 text-[#124D27] px-1.5 py-0.5 rounded font-bold font-mono">
+                  必須項目は【手牌（写真）】と【正解】の2つだけ
+                </span>
+              </div>
+              <p className="text-[#5C5549] text-[10px] mt-0.5 font-serif">
+                タイトル・点数・解説・河・名前はすべて省略OK（空欄なら自動設定されます）
+              </p>
+            </div>
+          </div>
+        </div>
+
         {/* 1. 問題タイプの選択（何切る問題 vs 鳴くか問題） */}
-        <div className="mb-4 p-2 bg-[#F8F5EC] rounded-xl border border-[#D5CEBE]">
+        <div className="mb-3 p-2 bg-[#F8F5EC] rounded-xl border border-[#D5CEBE]">
           <span className="block text-xs font-bold text-[#262422] mb-1.5 font-serif">
             問題の形式を選択:
           </span>
@@ -561,7 +682,7 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
           <button
             type="button"
             onClick={() => setPostMode('tiles')}
-            className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+            className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
               postMode === 'tiles'
                 ? 'bg-[#FBF9F4] text-[#262422] shadow-xs border border-[#D5CEBE]'
                 : 'text-[#5C5549] hover:text-[#262422]'
@@ -572,20 +693,33 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
           <button
             type="button"
             onClick={() => setPostMode('photo')}
-            className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+            className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 relative ${
               postMode === 'photo'
                 ? 'bg-[#FBF9F4] text-[#262422] shadow-xs border border-[#D5CEBE]'
                 : 'text-[#5C5549] hover:text-[#262422]'
             }`}
           >
             <span>📷 写真・スクショ投稿</span>
+            <span className="text-[9px] bg-[#124D27] text-white px-1.5 py-0.2 rounded-full font-bold shadow-2xs">
+              ⚡ 最速10秒！
+            </span>
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* 写真投稿モード時の画像アップロードUI */}
           {postMode === 'photo' && (
-            <div className="p-5 bg-[#F8F5EC] border-2 border-dashed border-[#1E3A5F]/40 rounded-2xl text-center space-y-3">
+            <div className="p-4 sm:p-5 bg-[#F8F5EC] border-2 border-dashed border-[#1E3A5F]/40 rounded-2xl text-center space-y-3">
+              {/* ステップガイド */}
+              <div className="flex items-center justify-center gap-2 text-xs font-serif text-[#1E3A5F] bg-[#E8EFF7] py-1.5 px-3 rounded-lg mx-auto w-fit">
+                <span className="font-bold">📷 最短3ステップ:</span>
+                <span>① 写真を選択</span>
+                <span>→</span>
+                <span>② 下の正解打牌をタップ</span>
+                <span>→</span>
+                <span>③ 投函ボタンを押すだけ！</span>
+              </div>
+
               <input
                 type="file"
                 ref={fileInputRef}
@@ -611,7 +745,7 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
                     </button>
                   </div>
                   <p className="text-xs text-[#124D27] font-bold font-serif">
-                    ✓ 写真の読み込みが完了しました（自動軽量化済み）
+                    ✓ 写真の読み込みが完了しました（自動軽量化済み・約80KB）
                   </p>
                 </div>
               ) : (
@@ -641,12 +775,15 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
           {/* タイトルと難易度 */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="sm:col-span-2">
-              <label className="block text-xs font-bold text-[#262422] mb-1 font-serif">
-                問題タイトル
+              <label className="block text-xs font-bold text-[#262422] mb-1 font-serif flex items-center justify-between">
+                <span>問題タイトル</span>
+                <span className="text-[10px] text-[#7A7265] font-normal font-sans">
+                  (任意・空欄なら自動設定)
+                </span>
               </label>
               <input
                 type="text"
-                placeholder={problemType === 'discard' ? '例: オーラス逆転の一打：打点 vs スピード' : '例: 親リーチへの押し引き：上家の牌をチーするか？'}
+                placeholder={problemType === 'discard' ? '例: オーラス逆転の一打：打点 vs スピード（空欄でもOK）' : '例: 親リーチへの押し引き：上家の牌をチーするか？（空欄でもOK）'}
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 className="w-full text-xs p-2.5 rounded-xl border border-[#D5CEBE] bg-[#FBF9F4] text-[#262422] placeholder-[#A8A090] focus:outline-none focus:border-[#1E3A5F] focus:ring-1 focus:ring-[#1E3A5F] font-serif"
@@ -669,54 +806,64 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
           </div>
 
           {/* 局況設定 */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 bg-[#F8F5EC] p-3 rounded-xl border border-[#D5CEBE]">
-            <div>
-              <label className="block text-[11px] font-bold text-[#5C5549] mb-1 font-serif">局</label>
-              <input
-                type="text"
-                value={round}
-                onChange={(e) => setRound(e.target.value)}
-                placeholder="東1局"
-                className="w-full text-xs p-2 rounded-lg border border-[#D5CEBE] bg-[#FBF9F4] font-bold font-serif text-[#262422]"
-              />
+          <div className="bg-[#F8F5EC] p-3 rounded-xl border border-[#D5CEBE] space-y-1.5">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-[#262422] font-serif">
+                局況設定
+              </span>
+              <span className="text-[10px] text-[#7A7265]">
+                (任意・標準設定のままでもOK)
+              </span>
             </div>
-            <div>
-              <label className="block text-[11px] font-bold text-[#5C5549] mb-1 font-serif">本場</label>
-              <div className="flex items-center gap-1">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+              <div>
+                <label className="block text-[11px] font-bold text-[#5C5549] mb-1 font-serif">局</label>
+                <input
+                  type="text"
+                  value={round}
+                  onChange={(e) => setRound(e.target.value)}
+                  placeholder="東1局"
+                  className="w-full text-xs p-2 rounded-lg border border-[#D5CEBE] bg-[#FBF9F4] font-bold font-serif text-[#262422]"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] font-bold text-[#5C5549] mb-1 font-serif">本場</label>
+                <div className="flex items-center gap-1">
+                  <input
+                    type="number"
+                    min={0}
+                    max={20}
+                    value={honba}
+                    onChange={(e) => setHonba(Math.max(0, Number(e.target.value)))}
+                    className="w-full text-xs p-2 rounded-lg border border-[#D5CEBE] bg-[#FBF9F4] font-bold text-center font-mono text-[#262422]"
+                  />
+                  <span className="text-xs text-[#7A7265] shrink-0 font-medium">本場</span>
+                </div>
+              </div>
+              <div>
+                <label className="block text-[11px] font-bold text-[#5C5549] mb-1 font-serif">巡目</label>
                 <input
                   type="number"
-                  min={0}
-                  max={20}
-                  value={honba}
-                  onChange={(e) => setHonba(Math.max(0, Number(e.target.value)))}
+                  min={1}
+                  max={18}
+                  value={turn}
+                  onChange={(e) => setTurn(Number(e.target.value))}
                   className="w-full text-xs p-2 rounded-lg border border-[#D5CEBE] bg-[#FBF9F4] font-bold text-center font-mono text-[#262422]"
                 />
-                <span className="text-xs text-[#7A7265] shrink-0 font-medium">本場</span>
               </div>
-            </div>
-            <div>
-              <label className="block text-[11px] font-bold text-[#5C5549] mb-1 font-serif">巡目</label>
-              <input
-                type="number"
-                min={1}
-                max={18}
-                value={turn}
-                onChange={(e) => setTurn(Number(e.target.value))}
-                className="w-full text-xs p-2 rounded-lg border border-[#D5CEBE] bg-[#FBF9F4] font-bold text-center font-mono text-[#262422]"
-              />
-            </div>
-            <div>
-              <label className="block text-[11px] font-bold text-[#5C5549] mb-1 font-serif">自家（自分）</label>
-              <select
-                value={wind}
-                onChange={(e) => setWind(e.target.value as any)}
-                className="w-full text-xs p-2 rounded-lg border border-[#D5CEBE] bg-[#FBF9F4] font-bold font-serif text-[#262422]"
-              >
-                <option value="東家">東家（親）</option>
-                <option value="南家">南家</option>
-                <option value="西家">西家</option>
-                <option value="北家">北家</option>
-              </select>
+              <div>
+                <label className="block text-[11px] font-bold text-[#5C5549] mb-1 font-serif">自家（自分）</label>
+                <select
+                  value={wind}
+                  onChange={(e) => setWind(e.target.value as any)}
+                  className="w-full text-xs p-2 rounded-lg border border-[#D5CEBE] bg-[#FBF9F4] font-bold font-serif text-[#262422]"
+                >
+                  <option value="東家">東家（親）</option>
+                  <option value="南家">南家</option>
+                  <option value="西家">西家</option>
+                  <option value="北家">北家</option>
+                </select>
+              </div>
             </div>
           </div>
 
@@ -1157,18 +1304,58 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
           {/* ★ 手牌パレット作成モード時の手牌表示（副露数に応じて必要枚数が 14/11/8/5/2 に連動！） */}
           {postMode === 'tiles' && (
             <>
-              <div className="space-y-1.5">
+              <div className="space-y-2">
+                {/* ⚡ クイック手牌入力バー（手動14枚の手間を激減） */}
+                <div className="bg-[#F4EFE6] p-2 rounded-xl border border-[#D5CEBE] flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-xs font-bold text-[#1E3A5F] font-serif flex items-center gap-1">
+                      <span>⚡</span>
+                      <span>クイック入力:</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleApplyRandomTemplate}
+                      className="px-2.5 py-1 text-xs font-bold bg-[#1E3A5F] hover:bg-[#152843] text-white rounded-lg transition-all cursor-pointer flex items-center gap-1 shadow-2xs active:scale-95"
+                      title="実践的な好形手牌を1タップで自動入力します"
+                    >
+                      <span>🎲</span>
+                      <span>ランダム手牌をセット</span>
+                    </button>
+                  </div>
+
+                  <div className="flex items-center gap-1 overflow-x-auto">
+                    <span className="text-[10px] text-[#7A7265] font-serif shrink-0">定番形:</span>
+                    {HAND_TEMPLATES.map((tmpl, idx) => (
+                      <button
+                        key={`quick-tmpl-${idx}`}
+                        type="button"
+                        onClick={() => handleApplyTemplate(tmpl)}
+                        className="px-2 py-0.5 text-[10px] font-bold bg-[#FBF9F4] hover:bg-[#EAE4D7] text-[#262422] border border-[#D5CEBE] rounded-md transition-colors cursor-pointer font-serif whitespace-nowrap"
+                        title={tmpl.desc}
+                      >
+                        {tmpl.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <label className="text-xs font-bold text-[#262422] font-serif">
-                      選択した手牌 ({hand.length} / {targetHandCount}枚)
+                    <label className="text-xs font-bold text-[#262422] font-serif flex items-center gap-1">
+                      <span>選択した手牌</span>
+                      <span className="text-[10px] bg-[#C82C26] text-white px-1.5 py-0.2 rounded font-mono">
+                        必須
+                      </span>
+                      <span className="font-mono text-[#5C5549]">
+                        ({hand.length} / {targetHandCount}枚)
+                      </span>
                     </label>
                     {myMeldCount > 0 && (
                       <span className="text-[10px] font-bold text-[#124D27] bg-[#EAF2EC] px-1.5 py-0.2 rounded border border-[#124D27]/30">
                         {myMeldCount}副露中 (手牌必要枚数: {targetHandCount}枚)
                       </span>
                     )}
-                    <span className="text-[10px] text-[#7A7265]">※タップで削除</span>
+                    <span className="text-[10px] text-[#7A7265]">※牌タップで削除</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <button
@@ -1369,14 +1556,22 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
           {/* ★ 正解の設定（何切る問題なら打牌、鳴くか問題ならアクション） */}
           {problemType === 'discard' ? (
             <div className="bg-[#F8F5EC] p-3.5 rounded-xl border border-[#D5CEBE] space-y-2.5">
-              <label className="block text-xs font-bold text-[#262422] font-serif">
-                本命の打牌（出題者が推奨する正解）
+              <label className="block text-xs font-bold text-[#262422] font-serif flex items-center gap-1.5">
+                <span>本命の打牌（出題者が推奨する正解）</span>
+                <span className="text-[10px] bg-[#C82C26] text-white px-1.5 py-0.2 rounded font-mono">
+                  必須
+                </span>
+                {bestDiscard && (
+                  <span className="text-[10px] text-[#124D27] font-bold font-serif ml-auto">
+                    選択中: 打{getTileDisplay(bestDiscard).topText}{getTileDisplay(bestDiscard).bottomText}
+                  </span>
+                )}
               </label>
 
               {postMode === 'tiles' ? (
                 hand.length === 0 ? (
                   <p className="text-xs text-[#7A7265] font-serif">
-                    先に上のパレットから手牌を選んでください
+                    先に上のパレットまたは【⚡ ランダム手牌】で手牌を選んでください
                   </p>
                 ) : (
                   <div className="flex flex-wrap gap-1.5 items-center">
@@ -1404,7 +1599,7 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
               ) : (
                 <div>
                   <p className="text-[11px] text-[#7A7265] mb-1.5 font-serif">
-                    写真の中の手牌から、正解とする打牌を選択してください:
+                    写真の中の手牌から、正解とする打牌を1つ選んでください（タップで即選択）:
                   </p>
                   <div className="flex flex-wrap gap-1 max-h-28 overflow-y-auto p-1.5 bg-[#FBF9F4] rounded-lg border border-[#D5CEBE]">
                     {ALL_TILES.map((tId) => {
@@ -1431,12 +1626,13 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
               )}
 
               <div>
-                <label className="block text-[11px] font-bold text-[#5C5549] mb-1 font-serif">
-                  本命打牌のひとこと理由
+                <label className="block text-[11px] font-bold text-[#5C5549] mb-1 font-serif flex items-center justify-between">
+                  <span>本命打牌のひとこと理由</span>
+                  <span className="text-[10px] text-[#7A7265] font-normal font-sans">(任意・省略可)</span>
                 </label>
                 <input
                   type="text"
-                  placeholder="例: 最大受け入れの28枚、手変わりでピンフ一盃口"
+                  placeholder="例: 最大受け入れの28枚、手変わりでピンフ一盃口（空欄でもOK）"
                   value={bestReason}
                   onChange={(e) => setBestReason(e.target.value)}
                   className="w-full text-xs p-2 rounded-lg border border-[#D5CEBE] bg-[#FBF9F4] text-[#262422] placeholder-[#A8A090] focus:outline-none focus:border-[#1E3A5F] focus:ring-1 focus:ring-[#1E3A5F] font-serif"
@@ -1565,12 +1761,13 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-[#5C5549] mb-1 font-serif">
-                  正解の判断（推奨理由）
+                <label className="block text-[11px] font-bold text-[#5C5549] mb-1 font-serif flex items-center justify-between">
+                  <span>正解の判断（推奨理由）</span>
+                  <span className="text-[10px] text-[#7A7265] font-normal font-sans">(任意・省略可)</span>
                 </label>
                 <input
                   type="text"
-                  placeholder="例: 34mチーで不要な1mを切って満貫テンパイ。赤5mにくっつく変化も残せる。"
+                  placeholder="例: 34mチーで不要な1mを切って満貫テンパイ。赤5mにくっつく変化も残せる。（空欄でもOK）"
                   value={bestReason}
                   onChange={(e) => setBestReason(e.target.value)}
                   className="w-full text-xs p-2 rounded-lg border border-[#D5CEBE] bg-[#FBF9F4] text-[#262422] placeholder-[#A8A090] focus:outline-none focus:border-[#1E3A5F] focus:ring-1 focus:ring-[#1E3A5F] font-serif"
@@ -1582,12 +1779,13 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
           {/* 解説と出題者名 */}
           <div className="space-y-3">
             <div>
-              <label className="block text-xs font-bold text-[#262422] mb-1 font-serif">
-                戦術解説
+              <label className="block text-xs font-bold text-[#262422] mb-1 font-serif flex items-center justify-between">
+                <span>戦術解説</span>
+                <span className="text-[10px] text-[#7A7265] font-normal font-sans">(任意・省略可)</span>
               </label>
               <textarea
-                rows={3}
-                placeholder="他の選択肢との比較や、巡目・点差を踏まえた戦術的な解説文を入力してください"
+                rows={2}
+                placeholder="他の選択肢との比較や、巡目・点差を踏まえた戦術的な解説文を入力してください（空欄でもOK）"
                 value={explanation}
                 onChange={(e) => setExplanation(e.target.value)}
                 className="w-full text-xs p-2.5 rounded-xl border border-[#D5CEBE] bg-[#FBF9F4] text-[#262422] placeholder-[#A8A090] focus:outline-none focus:border-[#1E3A5F] focus:ring-1 focus:ring-[#1E3A5F] font-serif"
@@ -1595,8 +1793,9 @@ export const PostProblemModal: React.FC<PostProblemModalProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-[#262422] mb-1 font-serif">
-                出題者のお名前（ペンネーム）
+              <label className="block text-xs font-bold text-[#262422] mb-1 font-serif flex items-center justify-between">
+                <span>出題者のお名前（ペンネーム）</span>
+                <span className="text-[10px] text-[#7A7265] font-normal font-sans">(任意・デフォルト「名無しの雀士」)</span>
               </label>
               <input
                 type="text"
