@@ -26,6 +26,8 @@ interface ProblemCardProps {
   onDelete?: (problemId: string) => void;
   canDelete?: boolean;
   onAnswered?: (problemId: string) => void;
+  ignoreSavedAnswer?: boolean;
+  isTimeUp?: boolean;
 }
 
 const WINDS: Array<'東家' | '南家' | '西家' | '北家'> = ['東家', '南家', '西家', '北家'];
@@ -44,6 +46,8 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({
   onDelete,
   canDelete: propCanDelete,
   onAnswered,
+  ignoreSavedAnswer = false,
+  isTimeUp = false,
 }) => {
   const isMeldProblem = problem.problemType === 'meld';
   const meldTarget = problem.meldTarget;
@@ -64,8 +68,17 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({
   const [additionalComment, setAdditionalComment] = useState('');
   const [copiedUrl, setCopiedUrl] = useState(false);
 
-  // 回答履歴のローカル復元
+  // 回答履歴のローカル復元（※ノックモード等の ignoreSavedAnswer 時はスキップ）
   useEffect(() => {
+    if (ignoreSavedAnswer) {
+      setHasAnswered(false);
+      setSelectedTileIndex(null);
+      setPhotoSelectedTile(null);
+      setSelectedMeldOptionId(null);
+      setUserReason('');
+      return;
+    }
+
     const saved = getUserAnswerForProblem(problem.id);
     if (saved) {
       setHasAnswered(true);
@@ -83,7 +96,14 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({
         }
       }
     }
-  }, [problem.id, isMeldProblem, sortedHand]);
+  }, [problem.id, isMeldProblem, sortedHand, ignoreSavedAnswer]);
+
+  // 時間切れ（isTimeUp）の検知
+  useEffect(() => {
+    if (isTimeUp && !hasAnswered) {
+      setHasAnswered(true);
+    }
+  }, [isTimeUp, hasAnswered]);
 
   // プレイヤー情報の安全パース
   const playersObj = useMemo(() => {
@@ -998,10 +1018,12 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({
         {/* 回答後：結果・統計・考察コメント */}
         {hasAnswered && (
           <div className="w-full mt-6 space-y-6 animate-fade-in">
-            {/* 正解/妥協/悪手判定カード */}
+            {/* 正解/妥協/悪手/時間切れ判定カード */}
             <div
               className={`p-4 sm:p-5 rounded-2xl border-2 shadow-xs ${
-                selectedDiscardInfo?.rank === 'best'
+                !selectedChoice && isTimeUp
+                  ? 'bg-[#FDF2F2] border-[#C82C26] text-[#C82C26]'
+                  : selectedDiscardInfo?.rank === 'best'
                   ? 'bg-[#EAF2EC] border-[#124D27] text-[#124D27]'
                   : selectedDiscardInfo?.rank === 'good'
                   ? 'bg-[#E8EFF7] border-[#1E3A5F] text-[#1E3A5F]'
@@ -1009,16 +1031,17 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({
               }`}
             >
               <div className="flex items-center gap-2 font-bold text-base sm:text-lg mb-1.5 font-serif">
-                {selectedDiscardInfo?.rank === 'best' && (isMeldProblem ? '🎉 素晴らしい！本命の正解判断です' : '🎉 素晴らしい！本命の正解打牌です')}
-                {selectedDiscardInfo?.rank === 'good' && (isMeldProblem ? '🤔 妥協手・別ルートの判断です' : '🤔 妥協手・別ルートの打牌です')}
-                {(!selectedDiscardInfo || selectedDiscardInfo.rank === 'bad') && (isMeldProblem ? '⚠️ 悪手、または推奨されない判断です' : '⚠️ 悪手、または推奨されない打牌です')}
+                {!selectedChoice && isTimeUp && '⏰ タイムアップ（時間切れ）！ 推奨される正解は以下の通りです'}
+                {selectedChoice && selectedDiscardInfo?.rank === 'best' && (isMeldProblem ? '🎉 素晴らしい！本命の正解判断です' : '🎉 素晴らしい！本命の正解打牌です')}
+                {selectedChoice && selectedDiscardInfo?.rank === 'good' && (isMeldProblem ? '🤔 妥協手・別ルートの判断です' : '🤔 妥協手・別ルートの打牌です')}
+                {selectedChoice && (!selectedDiscardInfo || selectedDiscardInfo.rank === 'bad') && (isMeldProblem ? '⚠️ 悪手、または推奨されない判断です' : '⚠️ 悪手、または推奨されない打牌です')}
               </div>
               <p className="text-sm opacity-90 leading-relaxed font-serif">
                 あなたの選択:{' '}
                 <span className="font-bold underline">
-                  {selectedChoice ? getChoiceLabel(selectedChoice) : ''}
+                  {selectedChoice ? getChoiceLabel(selectedChoice) : '（時間切れ未選択）'}
                 </span>{' '}
-                — {selectedDiscardInfo?.reason || (isMeldProblem ? '局面に応じた判断が求められます。' : '受け入れ枚数や守備面で大きな損失があります。')}
+                — {selectedDiscardInfo?.reason || (bestDiscard?.reason ? `正解の理由: ${bestDiscard.reason}` : isMeldProblem ? '局面に応じた判断が求められます。' : '受け入れ枚数や守備面で大きな損失があります。')}
               </p>
               {userReason.trim() && (
                 <div className="mt-2.5 text-xs bg-white/80 p-2.5 rounded-lg border border-black/10 font-serif">
